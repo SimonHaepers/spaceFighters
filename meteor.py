@@ -12,7 +12,7 @@ for (dirpath, dirnames, files) in walk('png/Meteors'):
 
 class Meteor(pg.sprite.Sprite):
     def __init__(self):
-        super().__init__()
+        super(Meteor, self).__init__()
 
         self.image = random.choice(pngs)
         self.rect = self.image.get_rect()

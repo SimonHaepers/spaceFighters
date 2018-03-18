@@ -4,7 +4,9 @@ from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, fo
 from meteor import Meteor
 from vector2d import Vector2d
 
-# test github
+pg.init()
+pg.joystick.init()
+
 window = pg.display.set_mode((windowWidth, windowHeight))
 pg.display.set_caption('Space Fighters')
 running = True
@@ -69,17 +71,6 @@ if __name__ == '__main__':
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
-            if event.type == pg.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    powering = True
-                elif event.button == 3:
-                    shp.shoot()
-            elif event.type == pg.MOUSEBUTTONUP:
-                if event.button == 1:
-                    powering = False
-
-        if powering:
-            shp.power()
 
         allSprites.update()
 

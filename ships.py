@@ -16,7 +16,7 @@ for (dirpath, dirnames, files) in walk('png/enemies'):
 
 class Ship(pg.sprite.Sprite):
     def __init__(self):
-        super().__init__()
+        super(Ship, self).__init__()
 
         self.pos = Vector2d(0, 0)
         self.vel = Vector2d(0, 0)
@@ -44,7 +44,7 @@ class Ship(pg.sprite.Sprite):
 
 class Player(Ship):
     def __init__(self):
-        super().__init__()
+        super(Player, self).__init__()
 
         self.image = red_ship
         self.original_img = self.image
@@ -52,9 +52,28 @@ class Player(Ship):
         self.pos = Vector2d(100, 100)
         self.max_speed = 13
 
+        if pg.joystick.get_count() != 0:
+            self.joystick = pg.joystick.Joystick(0)
+            self.joystick.init()
+            self.mode_joystick = True
+        else:
+            self.mode_joystick = False
+
     def update(self):
-        mouse_pos = pg.mouse.get_pos()
-        mouse_angle = math.atan2(mouse_pos[1] - 250, mouse_pos[0] - 350)
+        if self.mode_joystick:
+            mouse_angle = math.atan2(self.joystick.get_axis(1), self.joystick.get_axis(0))
+            if self.joystick.get_button(5):
+                self.power()
+            if self.joystick.get_button(4):
+                self.shoot()
+        else:
+            mouse_pos = pg.mouse.get_pos()
+            mouse_angle = math.atan2(mouse_pos[1] - 250, mouse_pos[0] - 350)
+            buttons = pg.mouse.get_pressed()
+            if buttons[0]:
+                self.power()
+            if buttons[2]:
+                self.shoot()
 
         self.angle = mouse_angle
 
@@ -75,7 +94,7 @@ class Player(Ship):
 
 class Enemy(Ship):
     def __init__(self, target):
-        super().__init__()
+        super(Enemy, self).__init__()
 
         self.pos = Vector2d(1000, 1000)
         self.image = random.choice(pngs)
