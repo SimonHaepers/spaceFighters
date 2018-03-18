@@ -4,7 +4,7 @@ from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, fo
 from meteor import Meteor
 from vector2d import Vector2d
 
-
+# test github
 window = pg.display.set_mode((windowWidth, windowHeight))
 pg.display.set_caption('Space Fighters')
 running = True
