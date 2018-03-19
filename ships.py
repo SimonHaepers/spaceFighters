@@ -3,7 +3,7 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import allSprites, bullets
+from settings import allSprites, bullets, windowWidth, windowHeight
 from bullet import Bullet
 
 red_ship = pg.image.load('png/playerShip1_red.png')
@@ -68,7 +68,7 @@ class Player(Ship):
                 self.shoot()
         else:
             mouse_pos = pg.mouse.get_pos()
-            mouse_angle = math.atan2(mouse_pos[1] - 250, mouse_pos[0] - 350)
+            mouse_angle = math.atan2(mouse_pos[1] - windowHeight/2, mouse_pos[0] - windowWidth/2)
             buttons = pg.mouse.get_pressed()
             if buttons[0]:
                 self.power()
@@ -101,6 +101,7 @@ class Enemy(Ship):
         self.original_img = self.image
         self.rect = self.image.get_rect()
         self.target = target
+        self.max_power = 0.4
 
     def update(self):
         des = self.target.pos.sub(self.pos)

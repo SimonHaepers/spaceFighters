@@ -75,11 +75,11 @@ if __name__ == '__main__':
         allSprites.update()
 
         camera.move()
-        camera.offset(allSprites)
+        camera.offset(allSprites)  # TODO collision detection with absolute position
         camera.offset(backgrounds)
 
         for bullet in bullets:
-            bullet.check_hit()
+            bullet.check_hit(allSprites)
 
         backgrounds.draw(window)
         allSprites.draw(window)
