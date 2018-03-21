@@ -1,6 +1,5 @@
 import pygame as pg
-from math import atan2, degrees
-from vector2d import Vector2d
+from math import degrees
 
 laser = pg.image.load('png/laser.png')
 
@@ -14,13 +13,14 @@ class Bullet(pg.sprite.Sprite):  # TODO soms verschijnt te kogel niet, het is al
         self.vel = vector.copy()
         self.image = pg.transform.rotate(laser, 270 - degrees(self.angle))
         self.rect = self.image.get_rect()
+        self.rect.center = self.pos.x, self.pos.y
 
         self.shooter = shooter
 
     def update(self):
         self.pos.add(self.vel)
 
-    def check_hit(self, group):  # TODO group-argument maken
+    def check_hit(self, group):
         for sprt in group:
             if sprt != self and sprt != self.shooter:
                 if pg.sprite.collide_rect(self, sprt):

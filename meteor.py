@@ -14,9 +14,10 @@ class Meteor(pg.sprite.Sprite):
     def __init__(self):
         super(Meteor, self).__init__()
 
-        self.image = random.choice(pngs)
-        self.rect = self.image.get_rect()
-
         self.pos = Vector2d(random.randint(0, 4000), random.randint(0, 4000))
         self.vel = None
+
+        self.image = random.choice(pngs)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos.x, self.pos.y
 

@@ -39,7 +39,7 @@ class Ship(pg.sprite.Sprite):
 
     def rotate(self):
         self.image = pg.transform.rotate(self.original_img, 270 - math.degrees(self.angle))
-        self.rect = self.image.get_rect()
+        self.rect.size = self.image.get_size()
 
 
 class Player(Ship):
