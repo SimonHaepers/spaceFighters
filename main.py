@@ -1,4 +1,5 @@
 import pygame as pg
+from random import randint
 from ships import Player, Enemy
 from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps
 from meteor import Meteor
@@ -12,7 +13,9 @@ pg.display.set_caption('Space Fighters')
 running = True
 clock = pg.time.Clock()
 backgrounds = pg.sprite.Group()
+stars = pg.sprite.Group()
 background = pg.image.load('png/background.png')
+star = pg.transform.scale(pg.image.load('png/star1.png'), (10, 10))
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
 powering = False
 
@@ -25,6 +28,11 @@ class Camera:
     def move(self):
         self.rect.center = self.follower.pos.x, self.follower.pos.y
         self.rect = self.rect.clamp(rect_space)
+
+    def move_stars(self):
+        for s in stars:
+            s.rect.centerx = int(s.pos.x / s.speed) - self.rect.x * s.speed
+            s.rect.centery = int(s.pos.y / s.speed) - self.rect.y * s.speed
 
     def offset(self, grp):
         for sprt in grp:
@@ -40,6 +48,21 @@ class Background(pg.sprite.Sprite):  # TODO 3-layer starfield
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.pos = Vector2d(self.rect.centerx, self.rect.centery)
+
+
+class Star(pg.sprite.Sprite):
+    def __init__(self, x, y, speed):
+        super(Star, self).__init__()
+
+        self.pos = Vector2d(x, y)
+        self.speed = speed
+        self.image = star
+        self.rect = self.image.get_rect()
+
+
+def create_layer(n_stars, speed):
+    for s in range(n_stars):
+        Star(randint(0, speed * mapSize), randint(0, speed * mapSize), speed).add(stars)
 
 
 def add_meteors(a):  # TODO setup-functie maken
@@ -63,7 +86,10 @@ if __name__ == '__main__':
     allSprites.add(shp, enmy)
     camera = Camera(shp)
     add_meteors(40)
-    make_bg()
+    # make_bg()
+    create_layer(100, 0.9)
+    create_layer(100, 0.5)
+    create_layer(100, 0.3)
 
     while running:
         window.fill((0, 0, 0))
@@ -78,12 +104,14 @@ if __name__ == '__main__':
         camera.move()
         camera.offset(allSprites)
         camera.offset(bullets)
-        camera.offset(backgrounds)
+        camera.move_stars()
+        # camera.offset(backgrounds)
 
         for bullet in bullets:
             bullet.check_hit(allSprites)
 
-        backgrounds.draw(window)
+        # backgrounds.draw(window)
+        stars.draw(window)
         bullets.draw(window)
         allSprites.draw(window)
 

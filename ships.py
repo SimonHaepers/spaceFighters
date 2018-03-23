@@ -23,6 +23,7 @@ class Ship(pg.sprite.Sprite):
         self.vel = Vector2d(0, 0)
         self.angle = 0
         self.max_power = 30 / fps
+        self.min_speed = 24 / fps
         self.max_speed = 600 / fps
         self.image = pg.Surface((50, 50))
         self.original_img = self.image.copy()
@@ -36,7 +37,7 @@ class Ship(pg.sprite.Sprite):
         m = self.vel.get_mag()
         if m > self.max_speed:
             self.vel.mag(self.max_speed)
-        elif m < 0.4:
+        elif m < self.min_speed:
             self.vel.mag(0)
 
     def rotate(self):
