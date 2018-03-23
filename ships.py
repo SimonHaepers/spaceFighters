@@ -3,10 +3,11 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import allSprites, bullets, windowWidth, windowHeight
+from settings import bullets, windowWidth, windowHeight, fps
 from bullet import Bullet
 
 red_ship = pg.image.load('png/playerShip1_red.png')
+fire = pg.image.load('png/fire.png')
 pngs = []
 for (dirpath, dirnames, files) in walk('png/enemies'):
     for file in files:
@@ -21,11 +22,12 @@ class Ship(pg.sprite.Sprite):
         self.pos = Vector2d(0, 0)
         self.vel = Vector2d(0, 0)
         self.angle = 0
-        self.max_power = 0.5
-        self.max_speed = 10
+        self.max_power = 30 / fps
+        self.max_speed = 600 / fps
         self.image = pg.Surface((50, 50))
-        self.original_img = self.image
+        self.original_img = self.image.copy()
         self.rect = self.image.get_rect()
+        self.last_fired = 0
 
     def add_vel(self, vector, power):
         vector.mag(power)
@@ -41,16 +43,25 @@ class Ship(pg.sprite.Sprite):
         self.image = pg.transform.rotate(self.original_img, 270 - math.degrees(self.angle))
         self.rect.size = self.image.get_size()
 
+    def shoot(self):
+        time = pg.time.get_ticks()
+        if self.last_fired + 200 <= time:
+            self.last_fired = time
+            vel = Vector2d(math.cos(self.angle), math.sin(self.angle))
+            vel.mag(20)  # TODO change bullet arguments
+            vel.add(self.vel)
+            Bullet(vel, self).add(bullets)
+
 
 class Player(Ship):
     def __init__(self):
         super(Player, self).__init__()
 
         self.image = red_ship
-        self.original_img = self.image
+        self.original_img = self.image.copy()
         self.rect = self.image.get_rect()
         self.pos = Vector2d(100, 100)
-        self.max_speed = 13
+        self.max_speed = 780 / fps
 
         if pg.joystick.get_count() != 0:
             self.joystick = pg.joystick.Joystick(0)
@@ -82,14 +93,9 @@ class Player(Ship):
         self.rotate()
 
     def power(self):
+
         direction = Vector2d(math.cos(self.angle), math.sin(self.angle))
         self.add_vel(direction, self.max_power)
-
-    def shoot(self):
-        vel = Vector2d(math.cos(self.angle), math.sin(self.angle))
-        vel.mag(20)
-        vel.add(self.vel)
-        Bullet(vel, self).add(allSprites, bullets)
 
 
 class Enemy(Ship):
@@ -101,7 +107,7 @@ class Enemy(Ship):
         self.original_img = self.image
         self.rect = self.image.get_rect()
         self.target = target
-        self.max_power = 0.4
+        self.max_power = 24 / fps
 
     def update(self):
         des = self.target.pos.sub(self.pos)

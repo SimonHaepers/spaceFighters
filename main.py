@@ -1,13 +1,13 @@
 import pygame as pg
 from ships import Player, Enemy
-from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, font
+from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps
 from meteor import Meteor
 from vector2d import Vector2d
 
 pg.init()
 pg.joystick.init()
 
-window = pg.display.set_mode((windowWidth, windowHeight))
+window = pg.display.set_mode((windowWidth, windowHeight), pg.NOFRAME)
 pg.display.set_caption('Space Fighters')
 running = True
 clock = pg.time.Clock()
@@ -32,7 +32,7 @@ class Camera:
             sprt.rect.centery = sprt.pos.y - self.rect.y
 
 
-class Background(pg.sprite.Sprite):  # TODO beter en sneller maken
+class Background(pg.sprite.Sprite):  # TODO 3-layer starfield
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
 
@@ -69,22 +69,25 @@ if __name__ == '__main__':
         window.fill((0, 0, 0))
 
         for event in pg.event.get():
-            if event.type == pg.QUIT:
+            if event.type == pg.QUIT or event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 running = False
 
         allSprites.update()
+        bullets.update()
 
         camera.move()
-        camera.offset(allSprites)  # TODO collision detection with absolute position
+        camera.offset(allSprites)
+        camera.offset(bullets)
         camera.offset(backgrounds)
 
         for bullet in bullets:
             bullet.check_hit(allSprites)
 
         backgrounds.draw(window)
+        bullets.draw(window)
         allSprites.draw(window)
 
-        window.blit(font.render(str(clock.tick(60)), True, (255, 255, 255)), (0, 0))
+        window.blit(font.render(str(round(1000 / clock.tick(fps))), True, (255, 255, 255)), (0, 0))
         pg.display.update()
 
     pg.quit()
