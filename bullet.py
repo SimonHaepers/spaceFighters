@@ -27,12 +27,12 @@ class Bullet(pg.sprite.Sprite):
         for sprt in group:
             if sprt != self.shooter:
                 if pg.sprite.collide_rect(self, sprt):
-                    print('rect collision')
                     collide_pos = pg.sprite.collide_mask(self, sprt)
                     if collide_pos is not None:
-                        print('mask collision')
-                        self.explosion.draw(self.pos.x + collide_pos[0], self.pos.y + collide_pos[1], 0)  # TODO is not yet done
+                        self.explosion.draw(self.pos.x + collide_pos[0], self.pos.y + collide_pos[1], 0)
                         self.explosion.add(particles)
+                        if hasattr(sprt, 'hit'):
+                            sprt.hit()
                         return True
 
         return False

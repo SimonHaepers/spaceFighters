@@ -1,6 +1,7 @@
 import pygame as pg
 from vector2d import Vector2d
 from math import degrees
+from settings import particles
 
 
 class Particle(pg.sprite.Sprite):
@@ -16,3 +17,22 @@ class Particle(pg.sprite.Sprite):
         self.pos.x, self.pos.y = x, y
         self.image = pg.transform.rotate(self.original_img, 270 - degrees(angle))
         self.rect.size = self.image.get_size()
+
+
+class Explosion:
+    def __init__(self, imgs, x, y):
+        self.frames = []
+        for img in imgs:
+            self.frames.append(Particle(img))
+
+        self.index = 0
+        self.x = x
+        self.y = y
+
+    def update(self):
+        if self.index != len(self.frames):
+            current = self.frames[self.index]
+            self.index += 1
+            current.add(particles)
+            current.draw(self.x, self.y, 0)
+

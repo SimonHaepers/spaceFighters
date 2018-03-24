@@ -3,17 +3,21 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import bullets, windowWidth, windowHeight, fps, particles
+from settings import bullets, windowWidth, windowHeight, fps, particles, explosions
 from bullet import Bullet
-from particle import Particle
+from particle import Particle, Explosion
 
 red_ship = pg.image.load('png/playerShip1_red.png')
 fire = pg.image.load('png/fire.png')
 pngs = []
 for (dirpath, dirnames, files) in walk('png/enemies'):
     for file in files:
-        a = pg.image.load(dirpath + '/' + file)
-        pngs.append(a)
+        pngs.append(pg.image.load(dirpath + '/' + file))
+
+exps = []
+for (dirpath, dirnames, files) in walk('png/explosion'):
+    for file in files:
+        exps.append(pg.image.load(dirpath + '/' + file))
 
 
 class Ship(pg.sprite.Sprite):
@@ -30,6 +34,7 @@ class Ship(pg.sprite.Sprite):
         self.original_img = self.image.copy()
         self.rect = self.image.get_rect()
         self.last_fired = 0
+        self.health = 100
 
     def add_vel(self, vector, power):
         vector.mag(power)
@@ -53,6 +58,9 @@ class Ship(pg.sprite.Sprite):
             vel.mag(20)  # TODO change bullet arguments
             vel.add(self.vel)
             Bullet(vel, self).add(bullets)
+
+    def hit(self):
+        self.health -= 20
 
 
 class Player(Ship):
@@ -114,6 +122,10 @@ class Enemy(Ship):
         self.max_power = 24.0 / fps
 
     def update(self):
+        if self.health <= 0:
+            explosions.append(Explosion(exps, self.pos.x, self.pos.y))
+            self.kill()
+
         des = self.target.pos.sub(self.pos)
         des.mag(10)
         steering = des.sub(self.vel)

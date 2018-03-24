@@ -1,7 +1,7 @@
 import pygame as pg
 from random import randint
 from ships import Player, Enemy
-from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps, particles
+from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps, particles, explosions
 from meteor import Meteor
 from vector2d import Vector2d
 
@@ -78,6 +78,9 @@ if __name__ == '__main__':
 
         allSprites.update()
         bullets.update()
+
+        for exp in explosions:
+            exp.update()
 
         for bullet in bullets:
             if bullet.check_hit(allSprites):
