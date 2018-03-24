@@ -129,7 +129,7 @@ class Enemy(Ship):
         des = self.target.pos.sub(self.pos)
         des.mag(10)
         steering = des.sub(self.vel)
-        self.add_vel(steering, self.max_power)
+        self.add_vel(steering, self.max_power)  # TODO get rid of this function
 
         self.pos.add(self.vel)
         self.angle = self.vel.angle() + 3.14

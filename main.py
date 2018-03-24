@@ -16,6 +16,7 @@ stars = pg.sprite.Group()
 star = pg.transform.scale(pg.image.load('png/star1.png'), (10, 10))
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
 powering = False
+last_spawn = 0
 
 
 class Camera:
@@ -58,11 +59,19 @@ def add_meteors(a):
         allSprites.add(Meteor())
 
 
+def spawn_enemies():
+    global last_spawn
+
+    time = pg.time.get_ticks()
+    if last_spawn + 5000 < time:
+        last_spawn = time
+        allSprites.add(Enemy(shp))
+
+
 if __name__ == '__main__':
 
     shp = Player()
-    enmy = Enemy(shp)
-    allSprites.add(shp, enmy)
+    allSprites.add(shp)
     camera = Camera(shp)
     add_meteors(40)
     create_layer(100, 0.9)
@@ -76,6 +85,7 @@ if __name__ == '__main__':
             if event.type == pg.QUIT or event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 running = False
 
+        spawn_enemies()
         allSprites.update()
         bullets.update()
 
