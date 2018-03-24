@@ -3,8 +3,9 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import bullets, windowWidth, windowHeight, fps
+from settings import bullets, windowWidth, windowHeight, fps, particles
 from bullet import Bullet
+from particle import Particle
 
 red_ship = pg.image.load('png/playerShip1_red.png')
 fire = pg.image.load('png/fire.png')
@@ -63,6 +64,7 @@ class Player(Ship):
         self.rect = self.image.get_rect()
         self.pos = Vector2d(100, 100)
         self.max_speed = 780 / fps
+        self.fire_particle = Particle(fire)
 
         if pg.joystick.get_count() != 0:
             self.joystick = pg.joystick.Joystick(0)
@@ -94,7 +96,10 @@ class Player(Ship):
         self.rotate()
 
     def power(self):
-
+        x = self.pos.x + math.cos(self.angle) * -random.randint(35, 45)
+        y = self.pos.y + math.sin(self.angle) * -random.randint(35, 45)
+        self.fire_particle.draw(x, y, self.angle)
+        self.fire_particle.add(particles)
         direction = Vector2d(math.cos(self.angle), math.sin(self.angle))
         self.add_vel(direction, self.max_power)
 

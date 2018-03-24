@@ -24,4 +24,8 @@ class Bullet(pg.sprite.Sprite):  # TODO soms verschijnt te kogel niet, het is al
         for sprt in group:
             if sprt != self and sprt != self.shooter:
                 if pg.sprite.collide_rect(self, sprt):
-                    self.kill()
+                    return True
+
+        return False
+
+

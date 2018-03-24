@@ -1,7 +1,7 @@
 import pygame as pg
 from random import randint
 from ships import Player, Enemy
-from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps
+from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps, particles
 from meteor import Meteor
 from vector2d import Vector2d
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     create_layer(100, 0.3)
 
     while running:
-        window.fill((0, 0, 0))
+        window.fill((40, 40, 50))
 
         for event in pg.event.get():
             if event.type == pg.QUIT or event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
@@ -104,17 +104,21 @@ if __name__ == '__main__':
         camera.move()
         camera.offset(allSprites)
         camera.offset(bullets)
+        camera.offset(particles)
         camera.move_stars()
         # camera.offset(backgrounds)
 
         for bullet in bullets:
-            bullet.check_hit(allSprites)
+            if bullet.check_hit(allSprites):
+                bullet.kill()
 
         # backgrounds.draw(window)
         stars.draw(window)
         bullets.draw(window)
         allSprites.draw(window)
+        particles.draw(window)
 
+        particles.empty()
         window.blit(font.render(str(round(1000 / clock.tick(fps))), True, (255, 255, 255)), (0, 0))
         pg.display.update()
 
