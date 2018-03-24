@@ -8,7 +8,7 @@ from vector2d import Vector2d
 pg.init()
 pg.joystick.init()
 
-window = pg.display.set_mode((windowWidth, windowHeight), pg.NOFRAME)
+window = pg.display.set_mode((windowWidth, windowHeight), pg.FULLSCREEN)
 pg.display.set_caption('Space Fighters')
 running = True
 clock = pg.time.Clock()
