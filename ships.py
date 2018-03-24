@@ -17,7 +17,7 @@ for (dirpath, dirnames, files) in walk('png/enemies'):
 exps = []
 for (dirpath, dirnames, files) in walk('png/explosion'):
     for file in files:
-        exps.append(pg.image.load(dirpath + '/' + file))
+        exps.append(pg.transform.scale(pg.image.load(dirpath + '/' + file), (128, 128)))
 
 
 class Ship(pg.sprite.Sprite):
