@@ -8,13 +8,11 @@ from vector2d import Vector2d
 pg.init()
 pg.joystick.init()
 
-window = pg.display.set_mode((windowWidth, windowHeight), pg.NOFRAME)
+window = pg.display.set_mode((windowWidth, windowHeight))
 pg.display.set_caption('Space Fighters')
 running = True
 clock = pg.time.Clock()
-backgrounds = pg.sprite.Group()
 stars = pg.sprite.Group()
-background = pg.image.load('png/background.png')
 star = pg.transform.scale(pg.image.load('png/star1.png'), (10, 10))
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
 powering = False
@@ -40,16 +38,6 @@ class Camera:
             sprt.rect.centery = sprt.pos.y - self.rect.y
 
 
-class Background(pg.sprite.Sprite):  # TODO 3-layer starfield
-    def __init__(self, x, y):
-        pg.sprite.Sprite.__init__(self)
-
-        self.image = background
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
-        self.pos = Vector2d(self.rect.centerx, self.rect.centery)
-
-
 class Star(pg.sprite.Sprite):
     def __init__(self, x, y, speed):
         super(Star, self).__init__()
@@ -65,28 +53,18 @@ def create_layer(n_stars, speed):
         Star(randint(0, speed * mapSize), randint(0, speed * mapSize), speed).add(stars)
 
 
-def add_meteors(a):  # TODO setup-functie maken
+def add_meteors(a):
     for i in range(a):
         allSprites.add(Meteor())
-
-
-def make_bg():
-    bgw = background.get_width()
-    bgh = background.get_height()
-
-    for x in range(int(mapSize / bgw)):
-        for y in range(int(mapSize / bgh)):
-            backgrounds.add(Background(x * bgw, y * bgh))
 
 
 if __name__ == '__main__':
 
     shp = Player()
-    enmy = Enemy(shp)
-    allSprites.add(shp, enmy)
+    # enmy = Enemy(shp)
+    allSprites.add(shp)
     camera = Camera(shp)
     add_meteors(40)
-    # make_bg()
     create_layer(100, 0.9)
     create_layer(100, 0.5)
     create_layer(100, 0.3)
@@ -101,22 +79,20 @@ if __name__ == '__main__':
         allSprites.update()
         bullets.update()
 
+        for bullet in bullets:
+            if bullet.check_hit(allSprites):
+                bullet.kill()
+
         camera.move()
         camera.offset(allSprites)
         camera.offset(bullets)
         camera.offset(particles)
         camera.move_stars()
-        # camera.offset(backgrounds)
 
-        for bullet in bullets:
-            if bullet.check_hit(allSprites):
-                bullet.kill()
-
-        # backgrounds.draw(window)
         stars.draw(window)
         bullets.draw(window)
-        allSprites.draw(window)
         particles.draw(window)
+        allSprites.draw(window)
 
         particles.empty()
         window.blit(font.render(str(round(1000 / clock.tick(fps))), True, (255, 255, 255)), (0, 0))

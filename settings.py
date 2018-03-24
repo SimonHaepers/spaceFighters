@@ -9,4 +9,4 @@ allSprites = pg.sprite.Group()
 bullets = pg.sprite.Group()
 particles = pg.sprite.Group()
 font = pg.font.Font(pg.font.get_default_font(), 30)
-fps = 180
+fps = 60

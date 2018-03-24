@@ -75,29 +75,27 @@ class Player(Ship):
 
     def update(self):
         if self.mode_joystick:
-            mouse_angle = math.atan2(self.joystick.get_axis(1), self.joystick.get_axis(0))
+            self.angle = math.atan2(self.joystick.get_axis(1), self.joystick.get_axis(0))
             if self.joystick.get_button(5):
                 self.power()
             if self.joystick.get_button(4):
                 self.shoot()
         else:
             mouse_pos = pg.mouse.get_pos()
-            mouse_angle = math.atan2(mouse_pos[1] - windowHeight/2, mouse_pos[0] - windowWidth/2)
+            self.angle = math.atan2(mouse_pos[1] - windowHeight/2, mouse_pos[0] - windowWidth/2)
             buttons = pg.mouse.get_pressed()
             if buttons[0]:
                 self.power()
             if buttons[2]:
                 self.shoot()
 
-        self.angle = mouse_angle
-
         self.pos.add(self.vel)
 
         self.rotate()
 
     def power(self):
-        x = self.pos.x + math.cos(self.angle) * -random.randint(35, 45)
-        y = self.pos.y + math.sin(self.angle) * -random.randint(35, 45)
+        x = self.pos.x + self.vel.x + math.cos(self.angle) * -random.randint(35, 45)
+        y = self.pos.y + self.vel.y + math.sin(self.angle) * -random.randint(35, 45)
         self.fire_particle.draw(x, y, self.angle)
         self.fire_particle.add(particles)
         direction = Vector2d(math.cos(self.angle), math.sin(self.angle))
