@@ -8,7 +8,7 @@ from vector2d import Vector2d
 pg.init()
 pg.joystick.init()
 
-window = pg.display.set_mode((windowWidth, windowHeight))
+window = pg.display.set_mode((windowWidth, windowHeight), pg.NOFRAME)
 pg.display.set_caption('Space Fighters')
 running = True
 clock = pg.time.Clock()
@@ -61,8 +61,8 @@ def add_meteors(a):
 if __name__ == '__main__':
 
     shp = Player()
-    # enmy = Enemy(shp)
-    allSprites.add(shp)
+    enmy = Enemy(shp)
+    allSprites.add(shp, enmy)
     camera = Camera(shp)
     add_meteors(40)
     create_layer(100, 0.9)
@@ -91,8 +91,9 @@ if __name__ == '__main__':
 
         stars.draw(window)
         bullets.draw(window)
-        particles.draw(window)
+        
         allSprites.draw(window)
+        particles.draw(window)
 
         particles.empty()
         window.blit(font.render(str(round(1000 / clock.tick(fps))), True, (255, 255, 255)), (0, 0))

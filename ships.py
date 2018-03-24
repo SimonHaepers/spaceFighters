@@ -23,8 +23,8 @@ class Ship(pg.sprite.Sprite):
         self.pos = Vector2d(0, 0)
         self.vel = Vector2d(0, 0)
         self.angle = 0
-        self.max_power = 30 / fps
-        self.min_speed = 24 / fps
+        self.max_power = 30.0 / fps
+        self.min_speed = 24.0 / fps
         self.max_speed = 600 / fps
         self.image = pg.Surface((50, 50))
         self.original_img = self.image.copy()
@@ -111,7 +111,7 @@ class Enemy(Ship):
         self.original_img = self.image
         self.rect = self.image.get_rect()
         self.target = target
-        self.max_power = 24 / fps
+        self.max_power = 24.0 / fps
 
     def update(self):
         des = self.target.pos.sub(self.pos)
