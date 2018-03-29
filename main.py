@@ -73,9 +73,9 @@ if __name__ == '__main__':
     allSprites.add(shp)
     camera = Camera(shp)
     add_meteors(40)
-    create_layer(100, 0.9)
-    create_layer(100, 0.5)
-    create_layer(100, 0.3)
+    create_layer(200, 0.9)
+    create_layer(200, 0.5)
+    create_layer(200, 0.3)
 
     while running:
         window.fill((40, 40, 50))

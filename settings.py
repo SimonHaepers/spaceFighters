@@ -2,9 +2,9 @@ import pygame as pg
 
 pg.font.init()
 
-windowWidth = 700
-windowHeight = 500
-mapSize = 4000
+windowWidth = 1000
+windowHeight = 700
+mapSize = 6000
 allSprites = pg.sprite.Group()
 bullets = pg.sprite.Group()
 particles = pg.sprite.Group()

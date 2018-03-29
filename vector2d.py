@@ -15,6 +15,10 @@ class Vector2d:
         self.x *= h
         self.y *= h
 
+    def div(self, d):
+        self.x /= d
+        self.y /= d
+
     def sub(self, other):
         return Vector2d(self.x - other.x, self.y - other.y)
 

@@ -6,6 +6,7 @@ from vector2d import Vector2d
 from settings import window, bullets, windowWidth, windowHeight, fps, particles, explosions, mapSize, allSprites
 from bullet import Bullet
 from particle import Particle, Explosion
+from meteor import Meteor
 
 red_ship = pg.image.load('png/playerShip1_red.png')
 fire = pg.image.load('png/fire.png')
@@ -35,6 +36,7 @@ class Ship(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.last_fired = 0
         self.health = 100
+        self.radius = int(math.sqrt((self.rect.centerx ** 2) + (self.rect.y ** 2)))
 
     def add_vel(self, vector):
         self.vel.add(vector)
@@ -129,37 +131,42 @@ class Enemy(Ship):
             self.kill()
 
         des = self.target.pos.sub(self.pos)
-        sep = self.seperation(allSprites)
-        sep.mag(self.max_speed)
         des.mag(self.max_speed)
         des = des.sub(self.vel)
+        self.acc.add(des)
+
+        sep = self.seperation(allSprites)
+        sep.mag(self.max_speed)
         if sep.x != 0 or sep.y != 0:
             sep = sep.sub(self.vel)
             sep.mult(2)
             self.acc.add(sep)
 
-        self.acc.add(des)
         self.acc.mag(self.max_power)
-        self.add_vel(self.acc)  # TODO get rid of this function
-
+        self.add_vel(self.acc)
         self.pos.add(self.vel)
         self.angle = self.vel.angle() + 3.14
         self.rotate()
 
     def seperation(self, group):
-        desired_seperation = 150
         sum_vector = Vector2d(0, 0)
         count = 0
         for sprite in group:
+            desired_seperation = (self.radius + sprite.radius) * 3
             d = math.sqrt((self.pos.x - sprite.pos.x) ** 2 + (self.pos.y - sprite.pos.y) ** 2)
             if d <= desired_seperation and sprite != self and sprite != self.target:
+                if isinstance(sprite, Enemy):
+                    push_force = 5
+                else:
+                    push_force = 15
+
                 v = self.pos.sub(sprite.pos)
-                v.mag(5/d)
-                sum_vector.add(v)  # TODO make div function
+                v.div(push_force * d)
+                sum_vector.add(v)
                 count += 1
 
         if count != 0:
-            sum_vector.mult(1/count)
+            sum_vector.div(count)
             sum_vector.norm()
 
         return sum_vector
