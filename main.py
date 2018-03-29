@@ -1,14 +1,13 @@
 import pygame as pg
 from random import randint
 from ships import Player, Enemy
-from settings import windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps, particles, explosions
+from settings import window, windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps, particles, explosions
 from meteor import Meteor
 from vector2d import Vector2d
 
 pg.init()
 pg.joystick.init()
 
-window = pg.display.set_mode((windowWidth, windowHeight), pg.FULLSCREEN)
 pg.display.set_caption('Space Fighters')
 running = True
 clock = pg.time.Clock()

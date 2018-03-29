@@ -3,7 +3,7 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import bullets, windowWidth, windowHeight, fps, particles, explosions, mapSize, allSprites
+from settings import window, bullets, windowWidth, windowHeight, fps, particles, explosions, mapSize, allSprites
 from bullet import Bullet
 from particle import Particle, Explosion
 
@@ -133,10 +133,12 @@ class Enemy(Ship):
         sep.mag(self.max_speed)
         des.mag(self.max_speed)
         des = des.sub(self.vel)
-        sep = sep.sub(self.vel)
-        sep.mult(1/2)
+        if sep.x != 0 or sep.y != 0:
+            sep = sep.sub(self.vel)
+            sep.mult(2)
+            self.acc.add(sep)
+
         self.acc.add(des)
-        self.acc.add(sep)
         self.acc.mag(self.max_power)
         self.add_vel(self.acc)  # TODO get rid of this function
 
@@ -152,7 +154,7 @@ class Enemy(Ship):
             d = math.sqrt((self.pos.x - sprite.pos.x) ** 2 + (self.pos.y - sprite.pos.y) ** 2)
             if d <= desired_seperation and sprite != self and sprite != self.target:
                 v = self.pos.sub(sprite.pos)
-                v.mag(1/d)
+                v.mag(5/d)
                 sum_vector.add(v)  # TODO make div function
                 count += 1
 
