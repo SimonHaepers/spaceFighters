@@ -3,7 +3,7 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import bullets, windowWidth, windowHeight, fps, particles, explosions
+from settings import bullets, windowWidth, windowHeight, fps, particles, explosions, mapSize, allSprites
 from bullet import Bullet
 from particle import Particle, Explosion
 
@@ -36,8 +36,7 @@ class Ship(pg.sprite.Sprite):
         self.last_fired = 0
         self.health = 100
 
-    def add_vel(self, vector, power):
-        vector.mag(power)
+    def add_vel(self, vector):
         self.vel.add(vector)
 
         m = self.vel.get_mag()
@@ -107,30 +106,58 @@ class Player(Ship):
         self.fire_particle.draw(x, y, self.angle)
         self.fire_particle.add(particles)
         direction = Vector2d(math.cos(self.angle), math.sin(self.angle))
-        self.add_vel(direction, self.max_power)
+        direction.mult(self.max_power)
+        self.add_vel(direction)
 
 
 class Enemy(Ship):
     def __init__(self, target):
         super(Enemy, self).__init__()
 
-        self.pos = Vector2d(1000, 1000)
+        self.pos = Vector2d(random.randint(0, mapSize), random.randint(0, mapSize))
         self.image = random.choice(pngs)
         self.original_img = self.image
         self.rect = self.image.get_rect()
         self.target = target
         self.max_power = 24.0 / fps
+        self.acc = Vector2d(0, 0)
 
     def update(self):
+        self.acc.x, self.acc.y = 0, 0
         if self.health <= 0:
             explosions.append(Explosion(exps, self.pos.x, self.pos.y))
             self.kill()
 
         des = self.target.pos.sub(self.pos)
-        des.mag(10)
-        steering = des.sub(self.vel)
-        self.add_vel(steering, self.max_power)  # TODO get rid of this function
+        sep = self.seperation(allSprites)
+        sep.mag(self.max_speed)
+        des.mag(self.max_speed)
+        des = des.sub(self.vel)
+        sep = sep.sub(self.vel)
+        sep.mult(1/2)
+        self.acc.add(des)
+        self.acc.add(sep)
+        self.acc.mag(self.max_power)
+        self.add_vel(self.acc)  # TODO get rid of this function
 
         self.pos.add(self.vel)
         self.angle = self.vel.angle() + 3.14
         self.rotate()
+
+    def seperation(self, group):
+        desired_seperation = 150
+        sum_vector = Vector2d(0, 0)
+        count = 0
+        for sprite in group:
+            d = math.sqrt((self.pos.x - sprite.pos.x) ** 2 + (self.pos.y - sprite.pos.y) ** 2)
+            if d <= desired_seperation and sprite != self and sprite != self.target:
+                v = self.pos.sub(sprite.pos)
+                v.mag(1/d)
+                sum_vector.add(v)  # TODO make div function
+                count += 1
+
+        if count != 0:
+            sum_vector.mult(1/count)
+            sum_vector.norm()
+
+        return sum_vector
