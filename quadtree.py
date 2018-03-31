@@ -5,7 +5,7 @@ class Quadtree:
     def __init__(self, x, y, w, h):
         self.bound = pg.Rect(x, y, w, h)
         self.divided = False
-        self.limit = 20
+        self.limit = 2
         self.objs = pg.sprite.Group()
         self.nodes = []
 
@@ -32,8 +32,8 @@ class Quadtree:
         self.divided = True
 
     def intersect(self, obj):
-        r = obj.rect.move(obj.pos.x - obj.rect.w / 2, obj.pos.y - obj.rect.h / 2)
-        return self.bound.colliderect(r)
+        # r = obj.rect.move(obj.pos.x - obj.rect.w / 2, obj.pos.y - obj.rect.h / 2)
+        return self.bound.colliderect(obj.rect)
 
     def query(self, rect):
         group = pg.sprite.Group()
