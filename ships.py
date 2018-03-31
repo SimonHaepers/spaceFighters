@@ -91,7 +91,7 @@ class Player(Ship):
                 self.shoot()
         else:
             mouse_pos = pg.mouse.get_pos()
-            self.angle = math.atan2(mouse_pos[1] - windowHeight/2, mouse_pos[0] - windowWidth/2)
+            self.angle = math.atan2(mouse_pos[1] - self.rect.centery, mouse_pos[0] - self.rect.centerx)
             buttons = pg.mouse.get_pressed()
             if buttons[0]:
                 self.power()

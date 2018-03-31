@@ -4,6 +4,7 @@ from ships import Player, Enemy
 from settings import window, windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps, particles, explosions
 from meteor import Meteor
 from vector2d import Vector2d
+from quadtree import Quadtree
 
 pg.init()
 pg.joystick.init()
@@ -16,6 +17,7 @@ star = pg.transform.scale(pg.image.load('png/star1.png'), (10, 10))
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
 powering = False
 last_spawn = 0
+qtree = Quadtree(0, 0, mapSize, mapSize)
 
 
 class Camera:
@@ -28,9 +30,9 @@ class Camera:
         self.rect = self.rect.clamp(rect_space)
 
     def move_stars(self):
-        for s in stars:
-            s.rect.centerx = int(s.pos.x / s.speed) - self.rect.x * s.speed
-            s.rect.centery = int(s.pos.y / s.speed) - self.rect.y * s.speed
+        for s in qtree.query(self.rect):
+            s.rect.centerx = int(s.pos.x) - self.rect.x * s.speed
+            s.rect.centery = int(s.pos.y) - self.rect.y * s.speed
 
     def offset(self, grp):
         for sprt in grp:
@@ -49,8 +51,10 @@ class Star(pg.sprite.Sprite):
 
 
 def create_layer(n_stars, speed):
-    for s in range(n_stars):
-        Star(randint(0, speed * mapSize), randint(0, speed * mapSize), speed).add(stars)
+    for j in range(n_stars):
+        s = Star(randint(0, mapSize), randint(0, mapSize), speed)
+        s.add(stars)
+        qtree.insert(s)
 
 
 def add_meteors(a):
@@ -99,9 +103,9 @@ if __name__ == '__main__':
         camera.offset(allSprites)
         camera.offset(bullets)
         camera.offset(particles)
-        camera.move_stars()
+        # camera.move_stars()
 
-        stars.draw(window)
+        # stars.draw(window)
         bullets.draw(window)
         
         allSprites.draw(window)
