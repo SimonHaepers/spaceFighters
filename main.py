@@ -40,33 +40,40 @@ class Camera:
             sprt.rect.centery = sprt.pos.y - self.rect.y
 
     def draw(self):
-        for q in layers:
-            rect = self.rect.copy()
-            rect.centerx = self.rect.centerx * (q.bound.w - self.rect.w) / (mapSize - self.rect.w)
-            rect.centery = self.rect.centery * (q.bound.h - self.rect.h) / (mapSize - self.rect.h)
+        for l in layers:
+            rect = pg.Rect(0, 0, self.rect.w / l.speed, self.rect.h / l.speed)
+            rect.center = self.rect.center
 
-            for s in q.query(rect):
-                if s.rect.colliderect(rect):
-                    des = (s.rect.x / s.speed) - (self.rect.x * s.speed), (s.rect.y / s.speed) - (self.rect.y * s.speed)
-                    window.blit(s.image, des)
+            for s in l.query(rect):
+                r = s.rect.copy()
+                r.centerx = mapping(s.pos.x - rect.x, 0, rect.w, 0, self.rect.w)
+                r.centery = mapping(s.pos.y - rect.y, 0, rect.h, 0, self.rect.h)
+                # pg.draw.rect(window, (255, 0, 0), r)
+                window.blit(s.image, (r.x, r.y))
 
 
 class Star(pg.sprite.Sprite):
-    def __init__(self, x, y, speed):
+    def __init__(self, x, y):
         super(Star, self).__init__()
 
-        self.speed = speed
+        self.pos = Vector2d(x, y)
         self.image = star
         self.rect = self.image.get_rect()
-        self.rect.center = x, y
+        self.rect.center = self.pos.x, self.pos.y
+
+
+class Layer(Quadtree):
+    def __init__(self, speed, x, y, w, h):
+        super(Layer, self).__init__(x, y, w, h)
+
+        self.speed = speed
 
 
 def create_layer(n_stars, speed):
-    w = mapSize * speed
-    q = Quadtree(0, 0, w, w)
+    q = Layer(speed, 0, 0, mapSize, mapSize)
 
     for j in range(n_stars):
-        s = Star(randint(0, w), randint(0, w), speed)
+        s = Star(randint(0, mapSize), randint(0, mapSize))
         s.add(stars)
         q.insert(s)
 
@@ -87,15 +94,24 @@ def spawn_enemies():
         allSprites.add(Enemy(shp))
 
 
+def mapping(value, xmin, xmax, ymin, ymax):
+    x_span = xmax - xmin
+    y_span = ymax - ymin
+
+    scaled_value = float(value - xmin) / float(x_span)
+
+    return ymin + (scaled_value * y_span)
+
+
 if __name__ == '__main__':
 
     shp = Player()
     allSprites.add(shp)
     camera = Camera(shp)
     add_meteors(40)
-    layers.append(create_layer(300, 0.9))
-    layers.append(create_layer(300, 0.5))
-    layers.append(create_layer(300, 0.3))
+    layers.append(create_layer(200, 0.9))
+    layers.append(create_layer(150, 0.5))
+    layers.append(create_layer(100, 0.3))
 
     while running:
         window.fill((40, 40, 50))
