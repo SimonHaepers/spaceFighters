@@ -7,12 +7,12 @@ from settings import bullets, fps, particles, explosions, mapSize, allSprites
 from bullet import Bullet
 from particle import Particle, Explosion
 
-red_ship = pg.image.load('png/playerShip1_red.png')
+red_ship = pg.transform.scale(pg.image.load('png/playerShip1_red.png'), (80, 60))
 fire = pg.image.load('png/fire.png')
 pngs = []
 for (dirpath, dirnames, files) in walk('png/enemies'):
     for file in files:
-        pngs.append(pg.image.load(dirpath + '/' + file))
+        pngs.append(pg.transform.scale(pg.image.load(dirpath + '/' + file), (80, 60)))
 
 exps = []
 for (dirpath, dirnames, files) in walk('png/explosion'):

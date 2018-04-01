@@ -32,7 +32,7 @@ class Camera:
             sprt.rect.centerx = sprt.pos.x - self.rect.x
             sprt.rect.centery = sprt.pos.y - self.rect.y
 
-    def draw(self):
+    def draw_layers(self):
         for l in layers:
             rect = pg.Rect(0, 0, self.rect.w / l.speed, self.rect.h / l.speed)
             rect.center = self.rect.center
@@ -88,6 +88,18 @@ def spawn_enemies():
         allSprites.add(Enemy(shp))
 
 
+def respawn():
+    global shp, camera
+
+    shp.kill()
+    shp = Player()
+    shp.add(allSprites)
+    camera = Camera(shp)
+    for sprt in allSprites:
+        if isinstance(sprt, Enemy):
+            sprt.target = shp
+
+
 def mapping(value, xmin, xmax, ymin, ymax):
     x_span = xmax - xmin
     y_span = ymax - ymin
@@ -102,19 +114,24 @@ if __name__ == '__main__':
     shp = Player()
     allSprites.add(shp)
     camera = Camera(shp)
-    add_meteors(200)
+    # add_meteors(200)
     layers.append(create_layer(True, 500, 0.1))
     layers.append(create_layer(False, 100, 0.2))
     layers.append(create_layer(False, 150, 0.3))
-    layers.append(create_layer(False, 200, 0.5))
-    layers.append(create_layer(False, 200, 0.8))
+    layers.append(create_layer(False, 200, 0.4))
+    layers.append(create_layer(False, 200, 0.6))
 
     while running:
         window.fill((40, 40, 50))
 
         for event in pg.event.get():
-            if event.type == pg.QUIT or event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+            if event.type == pg.QUIT:
                 running = False
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    running = False
+                if event.key == pg.K_SPACE:
+                    respawn()
 
         spawn_enemies()
         allSprites.update()
@@ -132,9 +149,8 @@ if __name__ == '__main__':
         camera.offset(bullets)
         camera.offset(particles)
 
-        camera.draw()
+        camera.draw_layers()
         bullets.draw(window)
-
         allSprites.draw(window)
         particles.draw(window)
 
