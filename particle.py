@@ -31,7 +31,7 @@ class Explosion:
 
     def update(self):
         if self.index <= len(self.frames)-1:
-            self.index += 0.2
+            self.index += 0.4
             current = self.frames[int(self.index)]
             current.add(particles)
             current.draw(self.x, self.y, 0)

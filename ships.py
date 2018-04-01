@@ -3,10 +3,9 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import window, bullets, windowWidth, windowHeight, fps, particles, explosions, mapSize, allSprites
+from settings import bullets, fps, particles, explosions, mapSize, allSprites
 from bullet import Bullet
 from particle import Particle, Explosion
-from meteor import Meteor
 
 red_ship = pg.image.load('png/playerShip1_red.png')
 fire = pg.image.load('png/fire.png')
@@ -60,8 +59,20 @@ class Ship(pg.sprite.Sprite):
             vel.add(self.vel)
             Bullet(vel, self).add(bullets)
 
+    def check_hit(self, group):
+        for sprt in group:
+            if sprt is not self:
+                if pg.sprite.collide_rect(self, sprt):
+                    if pg.sprite.collide_mask(self, sprt):
+                        self.die()
+                        sprt.die()
+
     def hit(self):
         self.health -= 20
+
+    def die(self):
+        explosions.append(Explosion(exps, self.pos.x, self.pos.y))
+        self.kill()
 
 
 class Player(Ship):
@@ -101,6 +112,7 @@ class Player(Ship):
         self.pos.add(self.vel)
 
         self.rotate()
+        self.check_hit(allSprites)
 
     def power(self):
         x = self.pos.x + self.vel.x + math.cos(self.angle) * -random.randint(35, 45)
@@ -127,8 +139,7 @@ class Enemy(Ship):
     def update(self):
         self.acc.x, self.acc.y = 0, 0
         if self.health <= 0:
-            explosions.append(Explosion(exps, self.pos.x, self.pos.y))
-            self.kill()
+            self.die()
 
         des = self.target.pos.sub(self.pos)
         des.mag(self.max_speed)
@@ -147,6 +158,7 @@ class Enemy(Ship):
         self.pos.add(self.vel)
         self.angle = self.vel.angle() + 3.14
         self.rotate()
+        self.check_hit(allSprites)
 
     def seperation(self, group):
         sum_vector = Vector2d(0, 0)

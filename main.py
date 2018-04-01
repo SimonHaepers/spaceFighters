@@ -3,7 +3,6 @@ from random import randint
 from ships import Player, Enemy
 from settings import window, windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps, particles, explosions
 from meteor import Meteor
-from vector2d import Vector2d
 from quadtree import Quadtree
 
 pg.init()
@@ -13,9 +12,8 @@ pg.display.set_caption('Space Fighters')
 running = True
 clock = pg.time.Clock()
 stars = pg.sprite.Group()
-star = pg.transform.scale(pg.image.load('png/star1.png'), (10, 10))
+star = pg.transform.scale(pg.image.load('png/star1.png'), (8, 8))
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
-powering = False
 last_spawn = 0
 layers = []
 

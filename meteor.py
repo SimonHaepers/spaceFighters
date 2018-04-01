@@ -27,3 +27,6 @@ class Meteor(pg.sprite.Sprite):
         self.radius = int(sqrt((self.rect.centerx ** 2) + (self.rect.y ** 2)))
         self.rect.center = self.pos.x, self.pos.y
 
+    def die(self):
+        pass
+
