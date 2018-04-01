@@ -29,11 +29,6 @@ class Camera:
         self.rect.center = self.follower.pos.x, self.follower.pos.y
         self.rect = self.rect.clamp(rect_space)
 
-    def offset_stars(self):
-        for s in stars:
-            s.rect.centerx = int(s.pos.x) - self.rect.x * s.speed
-            s.rect.centery = int(s.pos.y) - self.rect.y * s.speed
-
     def offset(self, grp):
         for sprt in grp:
             sprt.rect.centerx = sprt.pos.x - self.rect.x
@@ -45,21 +40,20 @@ class Camera:
             rect.center = self.rect.center
 
             for s in l.query(rect):
-                r = s.rect.copy()
-                r.centerx = mapping(s.pos.x - rect.x, 0, rect.w, 0, self.rect.w)
-                r.centery = mapping(s.pos.y - rect.y, 0, rect.h, 0, self.rect.h)
-                # pg.draw.rect(window, (255, 0, 0), r)
-                window.blit(s.image, (r.x, r.y))
+                if s.rect.colliderect(rect):
+                    r = s.rect.copy()
+                    r.centerx = mapping(s.rect.centerx - rect.x, 0, rect.w, 0, self.rect.w)
+                    r.centery = mapping(s.rect.centery - rect.y, 0, rect.h, 0, self.rect.h)
+                    window.blit(s.image, (r.x, r.y))
 
 
 class Star(pg.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self):
         super(Star, self).__init__()
 
-        self.pos = Vector2d(x, y)
         self.image = star
         self.rect = self.image.get_rect()
-        self.rect.center = self.pos.x, self.pos.y
+        self.rect.center = randint(0, mapSize), randint(0, mapSize)
 
 
 class Layer(Quadtree):
@@ -69,12 +63,14 @@ class Layer(Quadtree):
         self.speed = speed
 
 
-def create_layer(n_stars, speed):
+def create_layer(is_star, n, speed):
     q = Layer(speed, 0, 0, mapSize, mapSize)
 
-    for j in range(n_stars):
-        s = Star(randint(0, mapSize), randint(0, mapSize))
-        s.add(stars)
+    for j in range(n):
+        if is_star:
+            s = Star()
+        else:
+            s = Meteor(speed)
         q.insert(s)
 
     return q
@@ -82,7 +78,7 @@ def create_layer(n_stars, speed):
 
 def add_meteors(a):
     for i in range(a):
-        allSprites.add(Meteor())
+        allSprites.add(Meteor(1))
 
 
 def spawn_enemies():
@@ -108,10 +104,12 @@ if __name__ == '__main__':
     shp = Player()
     allSprites.add(shp)
     camera = Camera(shp)
-    add_meteors(40)
-    layers.append(create_layer(200, 0.9))
-    layers.append(create_layer(150, 0.5))
-    layers.append(create_layer(100, 0.3))
+    add_meteors(200)
+    layers.append(create_layer(True, 500, 0.1))
+    layers.append(create_layer(False, 100, 0.2))
+    layers.append(create_layer(False, 150, 0.3))
+    layers.append(create_layer(False, 200, 0.5))
+    layers.append(create_layer(False, 200, 0.8))
 
     while running:
         window.fill((40, 40, 50))
@@ -135,9 +133,7 @@ if __name__ == '__main__':
         camera.offset(allSprites)
         camera.offset(bullets)
         camera.offset(particles)
-        # camera.offset_stars()
 
-        # stars.draw(window)
         camera.draw()
         bullets.draw(window)
 

@@ -5,7 +5,7 @@ class Quadtree:
     def __init__(self, x, y, w, h):
         self.bound = pg.Rect(x, y, w, h)
         self.divided = False
-        self.limit = 2
+        self.limit = 20
         self.objs = pg.sprite.Group()
         self.nodes = []
 

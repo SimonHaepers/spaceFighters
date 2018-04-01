@@ -4,7 +4,7 @@ pg.font.init()
 
 windowWidth = 1000
 windowHeight = 700
-mapSize = 6000
+mapSize = 20000
 allSprites = pg.sprite.Group()
 bullets = pg.sprite.Group()
 particles = pg.sprite.Group()
