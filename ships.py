@@ -85,6 +85,7 @@ class Player(Ship):
         self.pos = Vector2d(100, 100)
         self.max_speed = 780 / fps
         self.fire_particle = Particle(fire)
+        self.score = 0
 
         if pg.joystick.get_count() != 0:
             self.joystick = pg.joystick.Joystick(0)
@@ -110,7 +111,6 @@ class Player(Ship):
                 self.shoot()
 
         self.pos.add(self.vel)
-
         self.rotate()
         self.check_hit(allSprites)
 

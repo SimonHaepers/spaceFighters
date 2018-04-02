@@ -1,7 +1,7 @@
 import pygame as pg
 from math import degrees
 from particle import Particle
-from settings import particles, mapSize, bullets
+from settings import particles, mapSize
 
 laser = pg.image.load('png/laser.png')
 laser_explosion = pg.image.load('png/laserGreen14.png')
@@ -36,9 +36,10 @@ class Bullet(pg.sprite.Sprite):
                         self.explosion.add(particles)
                         if hasattr(sprt, 'hit'):
                             sprt.hit()
-                        return True
 
-        return False
+                        return sprt
+
+        return None
 
 
 

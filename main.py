@@ -1,5 +1,6 @@
 import pygame as pg
 from random import randint
+from math import sqrt
 from ships import Player, Enemy
 from settings import window, windowHeight, windowWidth, mapSize, allSprites, bullets, font, fps, particles, explosions
 from meteor import Meteor
@@ -21,10 +22,21 @@ layers = []
 class Camera:
     def __init__(self, f):
         self.rect = pg.Rect(0, 0, windowWidth, windowHeight)
+        self.r = 100
         self.follower = f
 
     def move(self):
-        self.rect.center = self.follower.pos.x, self.follower.pos.y
+        dx = self.rect.centerx - self.follower.pos.x
+        dy = self.rect.centery - self.follower.pos.y
+        d = sqrt(dx * dx + dy * dy)
+        if d > self.r:
+            dx /= d
+            dy /= d
+            self.rect.centerx -= dx * (d - self.r)
+            self.rect.centery -= dy * (d - self.r)
+
+        # self.rect.center = self.follower.pos.x, self.follower.pos.y
+
         self.rect = self.rect.clamp(rect_space)
 
     def offset(self, grp):
@@ -46,12 +58,12 @@ class Camera:
 
 
 class Star(pg.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, x, y):
         super(Star, self).__init__()
 
         self.image = star
         self.rect = self.image.get_rect()
-        self.rect.center = randint(0, mapSize), randint(0, mapSize)
+        self.rect.center = x, y
 
 
 class Layer(Quadtree):
@@ -62,11 +74,13 @@ class Layer(Quadtree):
 
 
 def create_layer(is_star, n, speed):
-    q = Layer(speed, 0, 0, mapSize, mapSize)
+    offset_x = windowWidth / speed - windowWidth
+    offset_y = windowHeight / speed - windowHeight
+    q = Layer(speed, -offset_x / 2, -offset_y / 2, mapSize + offset_x, mapSize + offset_y)
 
     for j in range(n):
         if is_star:
-            s = Star()
+            s = Star(randint(q.bound.left, q.bound.right), randint(q.bound.top, q.bound.bottom))
         else:
             s = Meteor(speed)
         q.insert(s)
@@ -141,8 +155,11 @@ if __name__ == '__main__':
             exp.update()
 
         for bullet in bullets:
-            if bullet.check_hit(allSprites):
+            hit = bullet.check_hit(allSprites)
+            if hit is not None:
                 bullet.kill()
+                if isinstance(hit, Enemy):
+                    shp.score += 50
 
         camera.move()
         camera.offset(allSprites)
@@ -155,7 +172,10 @@ if __name__ == '__main__':
         particles.draw(window)
 
         particles.empty()
-        window.blit(font.render(str(round(1000 / clock.tick(fps))), True, (255, 255, 255)), (0, 0))
+
+        clock.tick(fps)
+        score_surf = font.render(str(shp.score), True, (255, 255, 255))
+        window.blit(score_surf, (windowWidth - score_surf.get_width(), 0))
         pg.display.update()
 
     pg.quit()
