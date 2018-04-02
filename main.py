@@ -52,9 +52,30 @@ class Camera:
             for s in l.query(rect):
                 if s.rect.colliderect(rect):
                     r = s.rect.copy()
-                    r.centerx = mapping(s.rect.centerx - rect.x, 0, rect.w, 0, self.rect.w)
-                    r.centery = mapping(s.rect.centery - rect.y, 0, rect.h, 0, self.rect.h)
+                    r.centerx = mapping(s.rect.centerx, rect.left, rect.right, 0, self.rect.w)
+                    r.centery = mapping(s.rect.centery, rect.top, rect.bottom, 0, self.rect.h)
                     window.blit(s.image, (r.x, r.y))
+
+
+class Radar:
+    def __init__(self, ship, target_group):
+        self.owner = ship
+        self.targets = target_group
+        self.rect = pg.Rect(0, 0, 4000, 4000)
+        self.image_size = 200
+        self.image = pg.Surface((self.image_size, self.image_size), pg.SRCALPHA)
+        self.point = pg.Surface((4, 4))
+        self.point.fill((255, 0, 0))
+
+    def update(self):
+        self.image.fill(0)
+        pg.draw.rect(self.image, (255, 255, 255), (1, 1, self.image_size - 2, self.image_size - 2), 1)
+        self.rect.center = self.owner.pos.x, self.owner.pos.y
+
+        for target in self.targets:
+            x = mapping(target.pos.x, self.rect.left, self.rect.right, 0, self.image_size)
+            y = mapping(target.pos.y, self.rect.top, self.rect.bottom, 0, self.image_size)
+            self.image.blit(self.point, (x, y))
 
 
 class Star(pg.sprite.Sprite):
@@ -103,12 +124,13 @@ def spawn_enemies():
 
 
 def respawn():
-    global shp, camera
+    global shp, camera, radar
 
     shp.kill()
     shp = Player()
     shp.add(allSprites)
     camera = Camera(shp)
+    radar = Radar(shp, allSprites)
     for sprt in allSprites:
         if isinstance(sprt, Enemy):
             sprt.target = shp
@@ -128,6 +150,7 @@ if __name__ == '__main__':
     shp = Player()
     allSprites.add(shp)
     camera = Camera(shp)
+    radar = Radar(shp, allSprites)
     # add_meteors(200)
     layers.append(create_layer(True, 500, 0.1))
     layers.append(create_layer(False, 100, 0.2))
@@ -173,9 +196,13 @@ if __name__ == '__main__':
 
         particles.empty()
 
-        clock.tick(fps)
         score_surf = font.render(str(shp.score), True, (255, 255, 255))
         window.blit(score_surf, (windowWidth - score_surf.get_width(), 0))
+
+        radar.update()
+        window.blit(radar.image, (20, 20))
+
         pg.display.update()
+        clock.tick(fps)
 
     pg.quit()
