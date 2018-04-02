@@ -15,9 +15,8 @@ for (dirpath, dirnames, files) in walk('png/enemies'):
         pngs.append(pg.transform.scale(pg.image.load(dirpath + '/' + file), (80, 60)))
 
 exps = []
-for (dirpath, dirnames, files) in walk('png/explosion'):
-    for file in files:
-        exps.append(pg.transform.scale(pg.image.load(dirpath + '/' + file), (128, 128)))
+for i in range(32):
+    exps.append(pg.transform.scale(pg.image.load('png/explosion/expl_06_{0:04d}.png'.format(i)), (128, 128)))
 
 
 class Ship(pg.sprite.Sprite):
@@ -55,7 +54,7 @@ class Ship(pg.sprite.Sprite):
         if self.last_fired + 200 <= time:
             self.last_fired = time
             vel = Vector2d(math.cos(self.angle), math.sin(self.angle))
-            vel.mag(20)  # TODO change bullet arguments
+            vel.mag(1200 / fps)  # TODO change bullet arguments
             vel.add(self.vel)
             Bullet(vel, self).add(bullets)
 

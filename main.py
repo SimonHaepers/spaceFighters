@@ -89,7 +89,7 @@ class Star(pg.sprite.Sprite):
 
 class Layer(Quadtree):
     def __init__(self, speed, x, y, w, h):
-        super(Layer, self).__init__(x, y, w, h)
+        Quadtree.__init__(self, x, y, w, h)
 
         self.speed = speed
 
