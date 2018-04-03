@@ -3,7 +3,7 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import bullets, fps, particles, explosions, mapSize, allSprites
+from settings import fps, particles, explosions, mapSize, allSprites
 from bullet import Bullet
 from particle import Particle, Explosion
 
@@ -56,7 +56,8 @@ class Ship(pg.sprite.Sprite):
             vel = Vector2d(math.cos(self.angle), math.sin(self.angle))
             vel.mag(1200 / fps)  # TODO change bullet arguments
             vel.add(self.vel)
-            Bullet(vel, self).add(bullets)
+
+            return Bullet(vel, self)
 
     def check_hit(self, group):
         for sprt in group:
@@ -85,33 +86,12 @@ class Player(Ship):
         self.max_speed = 780 / fps
         self.fire_particle = Particle(fire)
         self.score = 0
-
-        if pg.joystick.get_count() != 0:
-            self.joystick = pg.joystick.Joystick(0)
-            self.joystick.init()
-            self.mode_joystick = True
-        else:
-            self.mode_joystick = False
+        self.alive = True
 
     def update(self):
-        if self.mode_joystick:
-            self.angle = math.atan2(self.joystick.get_axis(1), self.joystick.get_axis(0))
-            if self.joystick.get_button(5):
-                self.power()
-            if self.joystick.get_button(4):
-                self.shoot()
-        else:
-            mouse_pos = pg.mouse.get_pos()
-            self.angle = math.atan2(mouse_pos[1] - self.rect.centery, mouse_pos[0] - self.rect.centerx)
-            buttons = pg.mouse.get_pressed()
-            if buttons[0]:
-                self.power()
-            if buttons[2]:
-                self.shoot()
-
         self.pos.add(self.vel)
         self.rotate()
-        self.check_hit(allSprites)
+        self.rect.center = self.pos.x, self.pos.y
 
     def power(self):
         x = self.pos.x + self.vel.x + math.cos(self.angle) * -random.randint(35, 45)
@@ -122,9 +102,14 @@ class Player(Ship):
         direction.mult(self.max_power)
         self.add_vel(direction)
 
+    def die(self):
+        explosions.append(Explosion(exps, self.pos.x, self.pos.y))
+        self.kill()
+        self.alive = False
+
 
 class Enemy(Ship):
-    def __init__(self, target):
+    def __init__(self, target, ships):
         super(Enemy, self).__init__()
 
         self.pos = Vector2d(random.randint(0, mapSize), random.randint(0, mapSize))
@@ -132,10 +117,11 @@ class Enemy(Ship):
         self.original_img = self.image
         self.rect = self.image.get_rect()
         self.target = target
+        self.ships = ships
         self.max_power = 24.0 / fps
         self.acc = Vector2d(0, 0)
 
-    def update(self):
+    def update(self):  # TODO dividing over multiple functions
         self.acc.x, self.acc.y = 0, 0
         if self.health <= 0:
             self.die()
@@ -145,7 +131,7 @@ class Enemy(Ship):
         des = des.sub(self.vel)
         self.acc.add(des)
 
-        sep = self.seperation(allSprites)
+        sep = self.seperation(self.ships)
         sep.mag(self.max_speed)
         if sep.x != 0 or sep.y != 0:
             sep = sep.sub(self.vel)
@@ -153,13 +139,14 @@ class Enemy(Ship):
             self.acc.add(sep)
 
         self.acc.mag(self.max_power)
+
         self.add_vel(self.acc)
         self.pos.add(self.vel)
         self.angle = self.vel.angle() + 3.14
         self.rotate()
-        self.check_hit(allSprites)
+        self.rect.center = self.pos.x, self.pos.y
 
-    def seperation(self, group):
+    def seperation(self, group):  # TODO call in game class
         sum_vector = Vector2d(0, 0)
         count = 0
         for sprite in group:

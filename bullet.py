@@ -22,6 +22,7 @@ class Bullet(pg.sprite.Sprite):
 
     def update(self):
         self.pos.add(self.vel)
+        self.rect.center = self.pos.x, self.pos.y
 
         if self.pos.x > mapSize or self.pos.x < 0 or self.pos.y > mapSize or self.pos.y < 0:
             self.kill()
