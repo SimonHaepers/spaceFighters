@@ -32,7 +32,6 @@ class Quadtree:
         self.divided = True
 
     def intersect(self, obj):
-        # r = obj.rect.move(obj.pos.x - obj.rect.w / 2, obj.pos.y - obj.rect.h / 2)
         return self.bound.colliderect(obj.rect)
 
     def query(self, rect):

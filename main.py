@@ -1,10 +1,8 @@
 import pygame as pg
-from random import randint
 from math import sqrt, atan2
 from ships import Player, Enemy
-from settings import window, windowHeight, windowWidth, mapSize, allSprites, fps, particles, explosions
-from meteor import Meteor  # TODO integrate in this file
-from quadtree import Quadtree
+from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
+from background import Layer, Star, Meteor
 
 pg.init()
 pg.joystick.init()
@@ -14,7 +12,6 @@ running = True
 clock = pg.time.Clock()
 stars = pg.sprite.Group()
 font = pg.font.Font('png/kenvector_future.ttf', 50)
-star = pg.transform.scale(pg.image.load('png/star1.png'), (8, 8))
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
 
 
@@ -33,8 +30,6 @@ class Camera:
             dy /= d
             self.rect.centerx -= dx * (d - self.r)
             self.rect.centery -= dy * (d - self.r)
-
-        # self.rect.center = self.follower.pos.x, self.follower.pos.y
 
         self.rect = self.rect.clamp(rect_space)
 
@@ -82,42 +77,6 @@ class Radar:
             pg.draw.rect(self.image, (255, 0, 0), (x, y, 4, 4))
 
 
-class Star(pg.sprite.Sprite):
-    def __init__(self, x, y):
-        super(Star, self).__init__()
-
-        self.image = star
-        self.rect = self.image.get_rect()
-        self.rect.center = x, y
-
-
-class Layer(Quadtree):
-    def __init__(self, speed, x, y, w, h):
-        Quadtree.__init__(self, x, y, w, h)
-
-        self.speed = speed
-
-
-def create_layer(is_star, n, speed):
-    offset_x = windowWidth / speed - windowWidth
-    offset_y = windowHeight / speed - windowHeight
-    q = Layer(speed, -offset_x / 2, -offset_y / 2, mapSize + offset_x, mapSize + offset_y)
-
-    for j in range(n):
-        if is_star:
-            s = Star(randint(q.bound.left, q.bound.right), randint(q.bound.top, q.bound.bottom))
-        else:
-            s = Meteor(speed)
-        q.insert(s)
-
-    return q
-
-
-def add_meteors(a):
-    for i in range(a):
-        allSprites.add(Meteor(1))
-
-
 def mapping(value, xmin, xmax, ymin, ymax):
     x_span = xmax - xmin
     y_span = ymax - ymin
@@ -139,11 +98,11 @@ class Game:
         self.radar = Radar(self.player, self.ships)
 
         self.layers = []
-        self.layers.append(create_layer(True, 500, 0.1))
-        self.layers.append(create_layer(False, 100, 0.2))
-        self.layers.append(create_layer(False, 150, 0.3))
-        self.layers.append(create_layer(False, 200, 0.4))
-        self.layers.append(create_layer(False, 200, 0.6))
+        self.layers.append(Layer(0.1, 500, Star, mapSize, windowHeight, windowWidth))
+        self.layers.append(Layer(0.2, 100, Meteor, mapSize, windowHeight, windowWidth))
+        self.layers.append(Layer(0.3, 150, Meteor, mapSize, windowHeight, windowWidth))
+        self.layers.append(Layer(0.4, 200, Meteor, mapSize, windowHeight, windowWidth))
+        self.layers.append(Layer(0.6, 200, Meteor, mapSize, windowHeight, windowWidth))
 
         self.last_spawn = 0
 

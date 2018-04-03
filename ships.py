@@ -3,7 +3,7 @@ import math
 import random
 from os import walk
 from vector2d import Vector2d
-from settings import fps, particles, explosions, mapSize, allSprites
+from settings import fps, particles, explosions, mapSize
 from bullet import Bullet
 from particle import Particle, Explosion
 

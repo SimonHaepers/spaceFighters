@@ -1,11 +1,8 @@
 import pygame as pg
 
-pg.font.init()
-
-windowWidth = 700
-windowHeight = 500
+windowWidth = 1000
+windowHeight = 700
 mapSize = 20000
-allSprites = pg.sprite.Group()
 particles = pg.sprite.Group()
 explosions = []
 fps = 60
