@@ -3,6 +3,8 @@ from math import sqrt, atan2
 from ships import Player, Enemy
 from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
 from background import Layer, Star, Meteor
+import socket
+import json
 
 pg.init()
 pg.joystick.init()
@@ -98,11 +100,6 @@ class Game:
         self.radar = Radar(self.player, self.ships)
 
         self.layers = []
-        self.layers.append(Layer(0.1, 500, Star, mapSize, windowHeight, windowWidth))
-        self.layers.append(Layer(0.2, 100, Meteor, mapSize, windowHeight, windowWidth))
-        self.layers.append(Layer(0.3, 150, Meteor, mapSize, windowHeight, windowWidth))
-        self.layers.append(Layer(0.4, 200, Meteor, mapSize, windowHeight, windowWidth))
-        self.layers.append(Layer(0.6, 200, Meteor, mapSize, windowHeight, windowWidth))
 
         self.last_spawn = 0
 
@@ -112,6 +109,58 @@ class Game:
             self.mode_joystick = True
         else:
             self.mode_joystick = False
+
+    def create_map(self):
+        self.layers.append(Layer(0.1, 500, Star, mapSize, windowHeight, windowWidth))
+        self.layers.append(Layer(0.2, 100, Meteor, mapSize, windowHeight, windowWidth))
+        self.layers.append(Layer(0.3, 150, Meteor, mapSize, windowHeight, windowWidth))
+        self.layers.append(Layer(0.4, 200, Meteor, mapSize, windowHeight, windowWidth))
+        self.layers.append(Layer(0.6, 200, Meteor, mapSize, windowHeight, windowWidth))
+
+    def input(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT or event.type == pg.JOYBUTTONDOWN and event.button == 8:
+                self.running = False
+
+        if self.player.alive:
+            if self.mode_joystick:
+                if self.joystick.get_button(4):
+                    bullet = self.player.shoot()
+                    if bullet:
+                        bullet.add(self.bullets)
+                if self.joystick.get_button(5):
+                    self.player.power()
+
+                x = self.joystick.get_axis(0)
+                y = self.joystick.get_axis(1)
+
+            else:
+                buttons = pg.mouse.get_pressed()
+                if buttons[0] == 1:
+                    self.player.power()
+                if buttons[2] == 1:
+                    bullet = self.player.shoot()
+                    if bullet:
+                        bullet.add(self.bullets)
+
+                mouse_pos = pg.mouse.get_pos()
+                x = mouse_pos[0] - (self.player.rect.centerx - self.camera.rect.x)
+                y = mouse_pos[1] - (self.player.rect.centery - self.camera.rect.y)
+
+            self.player.angle = atan2(y, x)
+
+    def spawn_enemy(self):
+        time = pg.time.get_ticks()
+        if self.last_spawn + 5000 < time:
+            self.last_spawn = time
+            self.ships.add(Enemy(self.player, self.ships))
+
+
+class GameSingle(Game):
+    def __init__(self, w):
+        super().__init__(w)
+
+        self.create_map()
 
     def loop(self):  # TODO divide into smaller functions
         while self.running:
@@ -153,47 +202,58 @@ class Game:
             pg.display.update()
             clock.tick(fps)
 
-    def input(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT or event.type == pg.JOYBUTTONDOWN and event.button == 8:
-                self.running = False
 
-        if self.player.alive:
-            if self.mode_joystick:
-                if self.joystick.get_button(4):
-                    bullet = self.player.shoot()
-                    if bullet:
-                        bullet.add(self.bullets)
-                if self.joystick.get_button(5):
-                    self.player.power()
+class GameMulti(Game):
+    def __init__(self, w):
+        super().__init__(w)
 
-                x = self.joystick.get_axis(0)
-                y = self.joystick.get_axis(1)
+        self.socket = socket.socket()
 
-            else:
-                buttons = pg.mouse.get_pressed()
-                if buttons[0] == 1:
-                    self.player.power()
-                if buttons[2] == 1:
-                    bullet = self.player.shoot()
-                    if bullet:
-                        bullet.add(self.bullets)
+    def send(self, data):
+        dumped_data = json.dumps(data)
+        encoded_data = dumped_data.encode()
+        self.socket.send(encoded_data)
 
-                mouse_pos = pg.mouse.get_pos()
-                x = mouse_pos[0] - (self.player.rect.centerx - self.camera.rect.x)
-                y = mouse_pos[1] - (self.player.rect.centery - self.camera.rect.y)
+    def receive(self):
+        data = self.socket.recv(2048)
+        decoded_data = data.decode()
+        loaded_data = json.loads(decoded_data)
 
-            self.player.angle = atan2(y, x)
+        return loaded_data
 
-    def spawn_enemy(self):
-        time = pg.time.get_ticks()
-        if self.last_spawn + 5000 < time:
-            self.last_spawn = time
-            self.ships.add(Enemy(self.player, self.ships))
+
+class GameServer(GameMulti):
+    def __init__(self, w):
+        super().__init__(w)
+
+        self.adress = '127.0.0.1', 5000
+        self.socket = self.connect()
+
+    def connect(self):
+        s = socket.socket()
+        s.bind(self.adress)
+        s.listen(1)
+        sock, adress = s.accept()
+
+        return sock
+
+
+class GameClient(GameMulti):
+    def __init__(self, w):
+        super().__init__(w)
+
+        self.adress = '127.0.0.1', 5000
+        self.socket = self.connect
+
+    def connect(self):
+        s = socket.socket()
+        s.connect(self.adress)
+
+        return s
 
 
 if __name__ == '__main__':
-    game = Game(window)
+    game = GameSingle(window)
     game.loop()
 
 pg.quit()
