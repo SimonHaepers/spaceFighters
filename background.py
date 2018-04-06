@@ -2,35 +2,63 @@ import pygame as pg
 from os import walk
 from random import randint, choice
 from quadtree import Quadtree
+import json
 
 star = pg.transform.scale(pg.image.load('png/star1.png'), (8, 8))
-pngs = []
+meteor_pngs = []
 for (dirpath, dirnames, files) in walk('png/Meteors'):
     for file in files:
-        a = pg.image.load(dirpath + '/' + file)
-        pngs.append(a)
+        meteor_pngs.append(dirpath + '/' + file)
+
+
+class SpriteEncoder(json.JSONEncoder):
+    def default(self, o):
+        d = {'center': o.rect.center,
+             'path': o.path,
+             'size': o.size,
+             'cls': o.__class__.__name__
+             }
+        return d
+
+
+def decode_sprite(dct):
+    return eval(dct['cls'])(dct['size'], dct['center'][0], dct['center'][1], dct['path'])
 
 
 class Meteor(pg.sprite.Sprite):
-    def __init__(self, size, x, y):
+    def __init__(self, size, x, y, path=None):
         super(Meteor, self).__init__()
 
-        img = choice(pngs)
-        w = int(img.get_width() * size)
-        h = int(img.get_height() * size)
-        self.image = pg.transform.scale(img, (w, h))
+        if path:
+            self.path = path
+        else:
+            self.path = choice(meteor_pngs)
+
+        self.size = size
+        self.image = self.load_image()
         self.rect = self.image.get_rect()
         self.rect.center = x, y
+
+    def load_image(self):
+        img = pg.image.load(self.path)
+        w = int(img.get_width() * self.size)
+        h = int(img.get_height() * self.size)
+        return pg.transform.scale(img, (w, h))
 
 
 class Star(pg.sprite.Sprite):
     def __init__(self, size, x, y):
         super(Star, self).__init__()
 
-        self.image = star
+        self.path = 'png/star1.png'
+        self.size = size
+        self.image = self.load_image()
         self.rect = self.image.get_rect()
         self.rect.center = x, y
-        self.size = size
+
+    def load_image(self):
+        img = pg.image.load(self.path)
+        return pg.transform(img, (8 * self.size, 8 * self.size))
 
 
 class Layer(Quadtree):
