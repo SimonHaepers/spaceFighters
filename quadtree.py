@@ -6,13 +6,13 @@ class Quadtree:
         self.bound = pg.Rect(x, y, w, h)
         self.divided = False
         self.limit = 20
-        self.objs = pg.sprite.Group()
+        self.objs = []
         self.nodes = []
 
     def insert(self, obj):
         if self.intersect(obj):
             if not self.divided and len(self.objs) < self.limit:
-                self.objs.add(obj)
+                self.objs.append(obj)
             else:
                 if not self.divided:
                     self.divide()
@@ -35,13 +35,13 @@ class Quadtree:
         return self.bound.colliderect(obj.rect)
 
     def query(self, rect):
-        group = pg.sprite.Group()
+        group = []
 
         if rect.colliderect(self.bound):
-            group.add(self.objs)
+            group += self.objs
             if self.divided:
                 for node in self.nodes:
-                    group.add(node.query(rect))
+                    group += node.query(rect)
 
         return group
 
