@@ -277,9 +277,9 @@ class GameServer(GameMulti):
             try:
                 print('sending...')
                 bs.sendto(b'hallo', ('255.255.255.255', 5555))
-                msg = bs.recv(1024)
+                bs.recv(1024)
                 print()
-                print('respond: ' + str(msg.decode()))
+                print('got respond')
                 break
             except socket.timeout:
                 print('no respond')
@@ -315,7 +315,7 @@ class GameServer(GameMulti):
             pos = int(data['pos'][0]) - self.camera.rect.x, int(data['pos'][1]) - self.camera.rect.y
             pg.draw.circle(self.window, (255, 0, 0), pos, 10)
             end_pos = int(pos[0] + cos(data['angle']) * 20), int(pos[1] + sin(data['angle']) * 20)
-            pg.draw.line(self.window, (0, 0, 255), data['pos'], end_pos, 3)
+            pg.draw.line(self.window, (0, 0, 255), pos, end_pos, 3)
 
         data = {'pos': (self.player.pos.x, self.player.pos.y), 'angle': self.player.angle}
         self.send(data)
@@ -369,7 +369,7 @@ class GameClient(GameMulti):
         pos = int(data['pos'][0]) - self.camera.rect.x, int(data['pos'][1]) - self.camera.rect.y
         pg.draw.circle(self.window, (255, 0, 0), pos, 10)
         end_pos = int(pos[0] + cos(data['angle']) * 20), int(pos[1] + sin(data['angle']) * 20)
-        pg.draw.line(self.window, (0, 0, 255), data['pos'], end_pos, 3)
+        pg.draw.line(self.window, (0, 0, 255), pos, end_pos, 3)
 
 
 if __name__ == '__main__':
