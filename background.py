@@ -39,7 +39,7 @@ class LayerEncoder(json.JSONEncoder):
 
 
 def decode_sprite(dct):
-    return eval(dct['cls'])(dct['size'], dct['center'][0], dct['center'][1], dct['path'])
+    return eval(dct['cls'])(dct['size'], dct['center'][0], dct['center'][1], path=dct['path'])
 
 
 def decode_layer(dct):
@@ -72,10 +72,10 @@ class Meteor(pg.sprite.Sprite):
 
 
 class Star(pg.sprite.Sprite):
-    def __init__(self, size, x, y):
+    def __init__(self, size, x, y, path='png/star1.png'):
         super(Star, self).__init__()
 
-        self.path = 'png/star1.png'
+        self.path = path
         self.size = 1
         self.image = self.load_image()
         self.rect = self.image.get_rect()

@@ -2,9 +2,10 @@ import pygame as pg
 from math import sqrt, atan2
 from ships import Player, Enemy
 from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
-from background import Layer, Star, Meteor
+from background import Layer, Star, Meteor, LayerEncoder, decode_layer
 import socket
 import json
+from time import sleep
 
 pg.init()
 pg.joystick.init()
@@ -231,8 +232,12 @@ class GameServer(GameMulti):
     def __init__(self, w):
         super().__init__(w)
 
-        self.adress = '127.0.0.1', 5000
+        self.adress = '', 5000
         self.socket = self.connect()
+        print('connected')
+
+        self.create_map()
+        self.send_map()
 
     def connect(self):
         s = socket.socket()
@@ -242,19 +247,56 @@ class GameServer(GameMulti):
 
         return sock
 
+    def send_map(self):
+        encoded_list = []
+        for layer in self.layers:
+            encoded_list.append(json.dumps(layer, cls=LayerEncoder))
+        encoded_list = json.dumps(encoded_list).encode()
+
+        length = len(encoded_list)
+        chunk_size = 1000
+        print(length)
+        lc = str(int(length / chunk_size) + 1).encode()
+        self.socket.send(lc)
+
+        for i in range(0, length, chunk_size):
+            print(i, i+chunk_size)
+            print(encoded_list[i:i+chunk_size])
+            self.socket.send(encoded_list[i:i+chunk_size])
+            sleep(0.05)
+
 
 class GameClient(GameMulti):
     def __init__(self, w):
         super().__init__(w)
 
         self.adress = '127.0.0.1', 5000
-        self.socket = self.connect
+        self.socket = self.connect()
+        print('connected')
+
+        self.recv_map()
 
     def connect(self):
         s = socket.socket()
         s.connect(self.adress)
 
         return s
+
+    def recv_map(self):
+        length = int(self.socket.recv(1024).decode())
+        print(length)
+        encoded_data = ''
+        for i in range(length):
+            print(i)
+            d = self.socket.recv(16384)
+            print(d)
+            encoded_data += d.decode()
+
+        print(len(encoded_data))
+        layer_list = json.loads(encoded_data)
+
+        for layer in layer_list:
+            self.layers.append(json.loads(layer, object_hook=decode_layer))
 
 
 if __name__ == '__main__':
