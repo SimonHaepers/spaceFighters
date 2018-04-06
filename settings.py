@@ -1,7 +1,7 @@
 import pygame as pg
 
-windowWidth = 1000
-windowHeight = 700
+windowWidth = 700
+windowHeight = 500
 mapSize = 20000
 particles = pg.sprite.Group()
 explosions = []
