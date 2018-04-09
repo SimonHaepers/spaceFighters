@@ -303,7 +303,7 @@ class GameServer(GameMulti):
         encoded_list = []
         for layer in self.layers:
             encoded_list.append(layer.get_dict())
-        encoded_list = pickle.dumps(encoded_list).encode()
+        encoded_list = pickle.dumps(encoded_list)
 
         length = len(encoded_list)
         chunk_size = 1000
@@ -360,7 +360,7 @@ class GameClient(GameMulti):
             print(i)
             d = self.socket.recv(16384)
             print(d)
-            encoded_data += d.decode()
+            encoded_data += d
 
         print(len(encoded_data))
         layer_list = pickle.loads(encoded_data)
