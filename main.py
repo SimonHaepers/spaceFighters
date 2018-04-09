@@ -124,11 +124,11 @@ class Game:
         self.layers.append(Layer(0.3, mapSize, windowWidth / 0.3 - windowWidth, windowHeight / 0.1 - windowHeight))
         self.layers.append(Layer(0.4, mapSize, windowWidth / 0.4 - windowWidth, windowHeight / 0.1 - windowHeight))
         self.layers.append(Layer(0.6, mapSize, windowWidth / 0.6 - windowWidth, windowHeight / 0.1 - windowHeight))
-        self.layers[0].create_objs(500, 'png/star1.png')
-        self.layers[1].create_objs(100, choice(meteor_pngs))
-        self.layers[2].create_objs(150, choice(meteor_pngs))
-        self.layers[3].create_objs(200, choice(meteor_pngs))
-        self.layers[4].create_objs(200, choice(meteor_pngs))
+        self.layers[0].create_objs(100, 'png/star1.png')
+        self.layers[1].create_objs(50, choice(meteor_pngs))
+        self.layers[2].create_objs(75, choice(meteor_pngs))
+        self.layers[3].create_objs(100, choice(meteor_pngs))
+        self.layers[4].create_objs(100, choice(meteor_pngs))
 
     def input(self):
         for event in pg.event.get():
