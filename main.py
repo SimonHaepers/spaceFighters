@@ -8,6 +8,7 @@ import json
 from time import sleep
 from os import walk
 from random import choice
+import pickle
 
 pg.init()
 pg.joystick.init()
@@ -302,7 +303,7 @@ class GameServer(GameMulti):
         encoded_list = []
         for layer in self.layers:
             encoded_list.append(layer.get_dict())
-        encoded_list = json.dumps(encoded_list).encode()
+        encoded_list = pickle.dumps(encoded_list).encode()
 
         length = len(encoded_list)
         chunk_size = 1000
@@ -362,7 +363,7 @@ class GameClient(GameMulti):
             encoded_data += d.decode()
 
         print(len(encoded_data))
-        layer_list = json.loads(encoded_data)
+        layer_list = pickle.loads(encoded_data)
 
         for layer_dct in layer_list:
             self.layers.append(decode_layer(layer_dct))
