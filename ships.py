@@ -21,7 +21,7 @@ for i in range(32):
 
 class Ship(pg.sprite.Sprite):
     def __init__(self):
-        super(Ship, self).__init__()
+        super().__init__()
 
         self.pos = Vector2d(0, 0)
         self.vel = Vector2d(0, 0)
@@ -77,7 +77,7 @@ class Ship(pg.sprite.Sprite):
 
 class Player(Ship):
     def __init__(self):
-        super(Player, self).__init__()
+        super().__init__()
 
         self.image = red_ship
         self.original_img = self.image.copy()
@@ -110,7 +110,7 @@ class Player(Ship):
 
 class Enemy(Ship):
     def __init__(self, target, ships):
-        super(Enemy, self).__init__()
+        super().__init__()
 
         self.pos = Vector2d(random.randint(0, mapSize), random.randint(0, mapSize))
         self.image = random.choice(pngs)

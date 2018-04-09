@@ -1,11 +1,9 @@
 import pygame as pg
-from math import sqrt, atan2, cos, sin
+from math import sqrt, atan2
 from ships import Player, Enemy
 from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
 from background import Layer, decode_layer
 import socket
-import json
-from time import sleep
 from os import walk
 from random import choice
 import pickle
@@ -253,10 +251,6 @@ class GameMulti(Game):
         if data:
             self.other_player.pos.x, self.other_player.pos.y = data['pos']
             self.other_player.angle = data['angle']
-            # pos = int(data['pos'][0]) - self.camera.rect.x, int(data['pos'][1]) - self.camera.rect.y
-            # pg.draw.circle(self.window, (255, 0, 0), pos, 10)
-            # end_pos = int(pos[0] + cos(data['angle']) * 20), int(pos[1] + sin(data['angle']) * 20)
-            # pg.draw.line(self.window, (0, 0, 255), pos, end_pos, 3)
 
 
 class GameServer(GameMulti):
@@ -278,10 +272,12 @@ class GameServer(GameMulti):
             self.player.update()
             self.recv_player_pos()
             self.send_player_pos()
+            self.other_player.update()
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
+            self.camera.draw(self.other_player, self.window)
 
             pg.display.update()
             clock.tick(fps)
@@ -342,10 +338,12 @@ class GameClient(GameMulti):
             self.player.update()
             self.send_player_pos()
             self.recv_player_pos()
+            self.other_player.update()
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
+            self.camera.draw(self.other_player, self.window)
 
             pg.display.update()
             clock.tick(fps)
