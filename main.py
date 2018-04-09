@@ -222,11 +222,11 @@ class GameMulti(Game):
         super().__init__(w)
 
         self.socket = socket.socket()
+        self.other_player = Player()
 
     def send(self, data):
         try:
-            dumped_data = json.dumps(data)
-            encoded_data = dumped_data.encode()
+            encoded_data = pickle.dumps(data)
             self.socket.send(encoded_data)
         except ConnectionResetError:
             pass
@@ -236,35 +236,27 @@ class GameMulti(Game):
     def receive(self):
         try:
             data = self.socket.recv(2048)
-            decoded_data = data.decode()
-            loaded_data = json.loads(decoded_data)
+            decoded_data = pickle.loads(data)
         except ConnectionResetError:
             return None
         except ConnectionAbortedError:
             return None
 
-        return loaded_data
+        return decoded_data
 
-    def loop(self):
-        while self.running:
-            self.window.fill((40, 50, 50))
+    def send_player_pos(self):
+        data = {'pos': (self.player.pos.x, self.player.pos.y), 'angle': self.player.angle}
+        self.send(data)
 
-            self.input()
-
-            self.player.update()
-            self.update_pos()
-
-            self.camera.move()
-            self.camera.draw_layers(self.layers, self.window)
-            self.camera.draw(self.player, self.window)
-
-            pg.display.update()
-            clock.tick(fps)
-
-        self.socket.close()
-
-    def update_pos(self):
-        pass
+    def recv_player_pos(self):
+        data = self.receive()
+        if data:
+            self.other_player.pos.x, self.other_player.pos.y = data['pos']
+            self.other_player.angle = data['angle']
+            # pos = int(data['pos'][0]) - self.camera.rect.x, int(data['pos'][1]) - self.camera.rect.y
+            # pg.draw.circle(self.window, (255, 0, 0), pos, 10)
+            # end_pos = int(pos[0] + cos(data['angle']) * 20), int(pos[1] + sin(data['angle']) * 20)
+            # pg.draw.line(self.window, (0, 0, 255), pos, end_pos, 3)
 
 
 class GameServer(GameMulti):
@@ -276,6 +268,25 @@ class GameServer(GameMulti):
 
         self.create_map()
         self.send_map()
+
+    def loop(self):
+        while self.running:
+            self.window.fill((40, 50, 50))
+
+            self.input()
+
+            self.player.update()
+            self.recv_player_pos()
+            self.send_player_pos()
+
+            self.camera.move()
+            self.camera.draw_layers(self.layers, self.window)
+            self.camera.draw(self.player, self.window)
+
+            pg.display.update()
+            clock.tick(fps)
+
+        self.socket.close()
 
     def connect(self):
         bs = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -307,26 +318,9 @@ class GameServer(GameMulti):
 
         length = len(data)
         print('byte size: ' + str(length))
-        self.socket.send(str(length + 1).encode())
+        self.socket.send(str(length).encode())
 
         self.socket.sendall(data)
-
-        # chunk_size = 1000
-        # for i in range(0, length, chunk_size):
-        #     print(i, i+chunk_size)
-        #     print(data[i:i+chunk_size])
-        #     self.socket.send(data[i:i+chunk_size])
-
-    def update_pos(self):
-        data = self.receive()
-        if data:
-            pos = int(data['pos'][0]) - self.camera.rect.x, int(data['pos'][1]) - self.camera.rect.y
-            pg.draw.circle(self.window, (255, 0, 0), pos, 10)
-            end_pos = int(pos[0] + cos(data['angle']) * 20), int(pos[1] + sin(data['angle']) * 20)
-            pg.draw.line(self.window, (0, 0, 255), pos, end_pos, 3)
-
-        data = {'pos': (self.player.pos.x, self.player.pos.y), 'angle': self.player.angle}
-        self.send(data)
 
 
 class GameClient(GameMulti):
@@ -338,6 +332,25 @@ class GameClient(GameMulti):
         print('connected to: ' + str(self.adress[0]) + ':' + str(self.adress[1]))
 
         self.recv_map()
+
+    def loop(self):
+        while self.running:
+            self.window.fill((40, 50, 50))
+
+            self.input()
+
+            self.player.update()
+            self.send_player_pos()
+            self.recv_player_pos()
+
+            self.camera.move()
+            self.camera.draw_layers(self.layers, self.window)
+            self.camera.draw(self.player, self.window)
+
+            pg.display.update()
+            clock.tick(fps)
+
+        self.socket.close()
 
     def connect(self):
         bs = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -357,9 +370,9 @@ class GameClient(GameMulti):
         length = int(self.socket.recv(1024).decode())
         encoded_data = b''
         while True:
-            if encoded_data == length:
+            if len(encoded_data) == length:
                 break
-            d = self.socket.recv(4096)
+            d = self.socket.recv(8192)
             print(d)
             encoded_data += d
 
@@ -368,16 +381,6 @@ class GameClient(GameMulti):
 
         for layer_dct in layer_list:
             self.layers.append(decode_layer(layer_dct))
-
-    def update_pos(self):
-        data = {'pos': (self.player.pos.x, self.player.pos.y), 'angle': self.player.angle}
-        self.send(data)
-
-        data = self.receive()
-        pos = int(data['pos'][0]) - self.camera.rect.x, int(data['pos'][1]) - self.camera.rect.y
-        pg.draw.circle(self.window, (255, 0, 0), pos, 10)
-        end_pos = int(pos[0] + cos(data['angle']) * 20), int(pos[1] + sin(data['angle']) * 20)
-        pg.draw.line(self.window, (0, 0, 255), pos, end_pos, 3)
 
 
 if __name__ == '__main__':
