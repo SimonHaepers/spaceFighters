@@ -303,19 +303,19 @@ class GameServer(GameMulti):
         encoded_list = []
         for layer in self.layers:
             encoded_list.append(layer.get_dict())
-        encoded_list = pickle.dumps(encoded_list)
+        data = pickle.dumps(encoded_list)
 
-        length = len(encoded_list)
-        chunk_size = 1000
+        length = len(data)
         print('byte size: ' + str(length))
-        self.socket.send(str(int(length / chunk_size) + 1).encode())
+        self.socket.send(str(length + 1).encode())
 
-        for i in range(0, length, chunk_size):
-            print(i, i+chunk_size)
-            print(encoded_list[i:i+chunk_size])
-            self.socket.send(encoded_list[i:i+chunk_size])
+        self.socket.sendall(data)
 
-        self.socket.send(b'')
+        # chunk_size = 1000
+        # for i in range(0, length, chunk_size):
+        #     print(i, i+chunk_size)
+        #     print(data[i:i+chunk_size])
+        #     self.socket.send(data[i:i+chunk_size])
 
     def update_pos(self):
         data = self.receive()
@@ -356,16 +356,14 @@ class GameClient(GameMulti):
     def recv_map(self):
         length = int(self.socket.recv(1024).decode())
         encoded_data = b''
-        for i in range(length):
-            print(i)
-            d = self.socket.recv(16384)
-            print(d)
-            if d != b'':
-                encoded_data += d
-            else:
+        while True:
+            if encoded_data == length:
                 break
+            d = self.socket.recv(4096)
+            print(d)
+            encoded_data += d
 
-        print(len(encoded_data))
+            print(len(encoded_data))
         layer_list = pickle.loads(encoded_data)
 
         for layer_dct in layer_list:
