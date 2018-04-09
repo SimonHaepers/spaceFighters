@@ -2,10 +2,12 @@ import pygame as pg
 from math import sqrt, atan2, cos, sin
 from ships import Player, Enemy
 from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
-from background import Layer, Star, Meteor, LayerEncoder, decode_layer
+from background import Layer, LayerEncoder, decode_layer
 import socket
 import json
 from time import sleep
+from os import walk
+from random import choice
 
 pg.init()
 pg.joystick.init()
@@ -16,6 +18,11 @@ clock = pg.time.Clock()
 stars = pg.sprite.Group()
 font = pg.font.Font('png/kenvector_future.ttf', 50)
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
+
+meteor_pngs = []
+for (dirpath, dirnames, files) in walk('png/Meteors'):
+    for file in files:
+        meteor_pngs.append(dirpath + '/' + file)
 
 
 class Camera:
@@ -117,11 +124,11 @@ class Game:
         self.layers.append(Layer(0.3, mapSize, windowWidth / 0.3 - windowWidth, windowHeight / 0.1 - windowHeight))
         self.layers.append(Layer(0.4, mapSize, windowWidth / 0.4 - windowWidth, windowHeight / 0.1 - windowHeight))
         self.layers.append(Layer(0.6, mapSize, windowWidth / 0.6 - windowWidth, windowHeight / 0.1 - windowHeight))
-        self.layers[0].create_objs(500, Star)
-        self.layers[1].create_objs(100, Meteor)
-        self.layers[2].create_objs(150, Meteor)
-        self.layers[3].create_objs(200, Meteor)
-        self.layers[4].create_objs(200, Meteor)
+        self.layers[0].create_objs(500, 'png/star1.png')
+        self.layers[1].create_objs(100, choice(meteor_pngs))
+        self.layers[2].create_objs(150, choice(meteor_pngs))
+        self.layers[3].create_objs(200, choice(meteor_pngs))
+        self.layers[4].create_objs(200, choice(meteor_pngs))
 
     def input(self):
         for event in pg.event.get():
@@ -294,12 +301,12 @@ class GameServer(GameMulti):
     def send_map(self):
         encoded_list = []
         for layer in self.layers:
-            encoded_list.append(json.dumps(layer, cls=LayerEncoder))
+            encoded_list.append(layer.get_dict())
         encoded_list = json.dumps(encoded_list).encode()
 
         length = len(encoded_list)
         chunk_size = 1000
-        print(length)
+        print('byte size: ' + str(length))
         lc = str(int(length / chunk_size) + 1).encode()
         self.socket.send(lc)
 
@@ -307,7 +314,7 @@ class GameServer(GameMulti):
             print(i, i+chunk_size)
             print(encoded_list[i:i+chunk_size])
             self.socket.send(encoded_list[i:i+chunk_size])
-            sleep(0.05)
+            sleep(0.2)
 
     def update_pos(self):
         data = self.receive()
@@ -347,7 +354,6 @@ class GameClient(GameMulti):
 
     def recv_map(self):
         length = int(self.socket.recv(1024).decode())
-        print(length)
         encoded_data = ''
         for i in range(length):
             print(i)
@@ -358,8 +364,8 @@ class GameClient(GameMulti):
         print(len(encoded_data))
         layer_list = json.loads(encoded_data)
 
-        for layer in layer_list:
-            self.layers.append(json.loads(layer, object_hook=decode_layer))
+        for layer_dct in layer_list:
+            self.layers.append(decode_layer(layer_dct))
 
     def update_pos(self):
         data = {'pos': (self.player.pos.x, self.player.pos.y), 'angle': self.player.angle}
@@ -373,7 +379,7 @@ class GameClient(GameMulti):
 
 
 if __name__ == '__main__':
-    game = GameServer(window)
+    game = GameSingle(window)
     game.loop()
 
 pg.quit()
