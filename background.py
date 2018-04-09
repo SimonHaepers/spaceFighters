@@ -6,7 +6,7 @@ from quadtree import Quadtree
 def decode_layer(dct):
     layer = Layer(dct['speed'], dct['map_size'], dct['offset']['x'], dct['offset']['y'])
     for obj in dct['objs']:
-        layer.insert(BackgroundObj(dct['speed'], obj['pos']['x'], obj['pos']['x'], obj['pos']))
+        layer.insert(BackgroundObj(dct['speed'], obj['pos']['x'], obj['pos']['x'], obj['path']))
 
     return layer
 
@@ -47,7 +47,7 @@ class Layer(Quadtree):
     def get_dict(self):
         lst_objs = []
         for obj in self.objs:
-            lst_objs.append({'pos': {'x': obj.pos.x, 'y': obj.pos.y}, 'path': obj.path})
+            lst_objs.append({'pos': {'x': obj.rect.centerx, 'y': obj.rect.centery}, 'path': obj.path})
 
         dct = {'speed': self.speed,
                'objs': lst_objs,

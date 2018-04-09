@@ -2,7 +2,7 @@ import pygame as pg
 from math import sqrt, atan2, cos, sin
 from ships import Player, Enemy
 from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
-from background import Layer, LayerEncoder, decode_layer
+from background import Layer, decode_layer
 import socket
 import json
 from time import sleep
@@ -379,7 +379,7 @@ class GameClient(GameMulti):
 
 
 if __name__ == '__main__':
-    game = GameSingle(window)
+    game = GameServer(window)
     game.loop()
 
 pg.quit()
