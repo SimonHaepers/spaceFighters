@@ -238,21 +238,14 @@ class GameMulti(Game):
         self.radar = Radar(self.player, [self.ships, self.ghost_ships])
 
     def send(self, data):
-        try:
-            encoded_data = pickle.dumps(data)
-            self.socket.send(encoded_data)
-        except ConnectionResetError:
-            pass
-        except ConnectionAbortedError:
-            pass
+        encoded_data = pickle.dumps(data)
+        self.socket.send(encoded_data)
 
     def receive(self):
         data = None
         try:
             data = pickle.loads(self.socket.recv(2048))
-        except ConnectionResetError:
-            self.running = False
-        except ConnectionAbortedError:
+        except EOFError:
             self.running = False
 
         if data:
@@ -299,6 +292,9 @@ class GameServer(GameMulti):
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
             self.camera.draw(self.ghost_ships, self.window)
+
+            self.radar.update()
+            self.window.blit(self.radar.image, (20, 20))
 
             pg.display.update()
             self.send_list = []
@@ -370,6 +366,9 @@ class GameClient(GameMulti):
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
             self.camera.draw(self.ghost_ships, self.window)
+
+            self.radar.update()
+            self.window.blit(self.radar.image, (20, 20))
 
             pg.display.update()
             self.send_list = []
