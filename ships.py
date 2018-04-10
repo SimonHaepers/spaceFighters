@@ -36,11 +36,6 @@ class Ship(pg.sprite.Sprite):
         self.health = 100
         self.radius = int(math.sqrt((self.rect.centerx ** 2) + (self.rect.y ** 2)))
 
-    def update(self):
-        self.pos.add(self.vel)
-        self.rotate()
-        self.rect.center = self.pos.x, self.pos.y
-
     def add_vel(self, vector):
         self.vel.add(vector)
 
@@ -95,6 +90,11 @@ class Player(Ship):
         self.alive = True
         self.key = key
 
+    def update(self):
+        self.pos.add(self.vel)
+        self.rotate()
+        self.rect.center = self.pos.x, self.pos.y
+
     def power(self):
         x = self.pos.x + self.vel.x + math.cos(self.angle) * -random.randint(35, 45)
         y = self.pos.y + self.vel.y + math.sin(self.angle) * -random.randint(35, 45)
@@ -125,7 +125,7 @@ class Enemy(Ship):
         self.acc = Vector2d(0, 0)
         self.key = key
 
-    def move(self):  # TODO dividing over multiple functions
+    def update(self):  # TODO dividing over multiple functions
         self.acc.x, self.acc.y = 0, 0
         if self.health <= 0:
             self.die()
@@ -152,6 +152,8 @@ class Enemy(Ship):
         self.add_vel(self.acc)
         self.pos.add(self.vel)
         self.angle = self.vel.angle() + 3.14
+        self.rotate()
+        self.rect.center = self.pos.x, self.pos.y
 
     def seperation(self, group):  # TODO call in game class
         sum_vector = Vector2d(0, 0)
@@ -176,11 +178,3 @@ class Enemy(Ship):
 
         return sum_vector
 
-
-class GhostShip(Ship):
-    def __init__(self, path):
-        super().__init__()
-
-        self.image = pg.transform.scale(pg.image.load(path), (80, 60))
-        self.original_img = self.image.copy()
-        self.rect = self.image.get_rect()

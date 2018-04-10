@@ -188,7 +188,7 @@ class GameSingle(Game):
             self.spawn_enemy()
 
             for ship in self.ships:
-                ship.move()
+                ship.update()
                 ship.update()
 
             self.bullets.update()
@@ -293,12 +293,16 @@ class GameServer(GameMulti):
 
             self.input()
 
-            self.player.update()
+            self.spawn_enemy()
+
+            for ship in self.ships:
+                ship.update()
+                self.send_list.append(MoveEvent(ship.key, ship.rect.center, ship.angle))
             for bullet in self.bullets:
                 bullet.update()
                 self.send_list.append(MoveEvent(bullet.key, bullet.rect.center, bullet.angle))
+
             self.receive()
-            self.send_list.append(MoveEvent(self.player.key, self.player.rect.center, self.player.angle))
             self.send(self.send_list)
 
             for ghost in self.ghost_ships + self.ghost_bullets:
@@ -307,7 +311,7 @@ class GameServer(GameMulti):
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.ghost_ships + self.ghost_bullets, self.window)
+            self.camera.draw(self.ghost_ships + self.ghost_bullets + self.bullets + self.ships, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
@@ -384,7 +388,7 @@ class GameClient(GameMulti):
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.ghost_ships + self.ghost_bullets, self.window)
+            self.camera.draw(self.ghost_ships + self.ghost_bullets + self.bullets, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
