@@ -61,7 +61,7 @@ class Camera:
                     w.blit(s.image, (r.x, r.y))
 
     def draw(self, obj, w):
-        if isinstance(obj, pg.sprite.Group):
+        if isinstance(obj, list) or isinstance(obj, pg.sprite.Group):
             for sprite in obj:
                 window.blit(sprite.image, (sprite.rect.x - self.rect.x, sprite.rect.y - self.rect.y))
         else:
@@ -257,7 +257,6 @@ class GameMulti(Game):
 
         if data:
             for event in data:
-                print(event)
                 if isinstance(event, AddEvent):
                     event.do(self.ghost_ships)
                 else:
@@ -285,7 +284,6 @@ class GameServer(GameMulti):
     def loop(self):
         while self.running:
             self.window.fill((40, 50, 50))
-            self.send_list = []
 
             self.input()
 
@@ -303,6 +301,7 @@ class GameServer(GameMulti):
             self.camera.draw(self.ghost_ships, self.window)
 
             pg.display.update()
+            self.send_list = []
             clock.tick(fps)
 
         self.socket.close()
@@ -337,7 +336,7 @@ class GameServer(GameMulti):
 
         length = len(data)
         print('byte size: ' + str(length))
-        self.socket.send(str(length).encode())
+        self.socket.sendall(str(length).encode())
 
         self.socket.sendall(data)
 
@@ -355,7 +354,6 @@ class GameClient(GameMulti):
     def loop(self):
         while self.running:
             self.window.fill((40, 50, 50))
-            self.send_list = []
 
             self.input()
 
@@ -374,6 +372,7 @@ class GameClient(GameMulti):
             self.camera.draw(self.ghost_ships, self.window)
 
             pg.display.update()
+            self.send_list = []
             clock.tick(fps)
 
         self.socket.close()
@@ -432,9 +431,9 @@ class MoveEvent:
 
 
 def get_key():
-    key = hex(randint(0, 255))
+    key = str(randint(0, 255))
     while key in used_keys:
-        key = hex(randint(0, 255))
+        key = str(randint(0, 255))
 
     used_keys.append(key)
 
@@ -442,7 +441,7 @@ def get_key():
 
 
 if __name__ == '__main__':
-    game = GameSingle(window)
+    game = GameServer(window)
     game.loop()
 
 pg.quit()

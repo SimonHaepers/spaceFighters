@@ -182,4 +182,5 @@ class GhostShip(Ship):
         super().__init__()
 
         self.image = pg.transform.scale(pg.image.load(path), (80, 60))
+        self.original_img = self.image.copy()
         self.rect = self.image.get_rect()
