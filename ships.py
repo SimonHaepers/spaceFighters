@@ -62,7 +62,7 @@ class Ship(pg.sprite.Sprite):
             vel.mag(1200 / fps)  # TODO change bullet arguments
             vel.add(self.vel)
 
-            return Bullet(vel, self)
+            return vel
 
     def check_hit(self, group):
         for sprt in group:
