@@ -9,7 +9,7 @@ laser_explosion = pg.image.load('png/laserGreen14.png')
 
 class Bullet(pg.sprite.Sprite):
     def __init__(self, vector, shooter):
-        super(Bullet, self).__init__()
+        super().__init__()
 
         self.angle = shooter.angle
         self.pos = shooter.pos.copy()

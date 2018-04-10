@@ -1,11 +1,11 @@
 import pygame as pg
 from math import sqrt, atan2
-from ships import Player, Enemy
+from ships import Player, Enemy, GhostShip
 from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
 from background import Layer, decode_layer
 import socket
 from os import walk
-from random import choice
+from random import choice, randint
 import pickle
 
 pg.init()
@@ -14,9 +14,10 @@ pg.joystick.init()
 pg.display.set_caption('Space Fighters')
 running = True
 clock = pg.time.Clock()
-stars = pg.sprite.Group()
 font = pg.font.Font('png/kenvector_future.ttf', 50)
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
+keys_dict = {}
+used_keys = []
 
 meteor_pngs = []
 for (dirpath, dirnames, files) in walk('png/Meteors'):
@@ -68,9 +69,9 @@ class Camera:
 
 
 class Radar:
-    def __init__(self, ship, target_group):
+    def __init__(self, ship, target_groups):
         self.owner = ship
-        self.targets = target_group
+        self.groups = target_groups
         self.rect = pg.Rect(0, 0, 4000, 4000)
         self.image_size = 200
         self.image = pg.Surface((self.image_size, self.image_size), pg.SRCALPHA)
@@ -80,10 +81,11 @@ class Radar:
         pg.draw.rect(self.image, (255, 255, 255), (1, 1, self.image_size - 2, self.image_size - 2), 1)
         self.rect.center = self.owner.pos.x, self.owner.pos.y
 
-        for target in self.targets:
-            x = mapping(target.pos.x, self.rect.left, self.rect.right, 0, self.image_size)
-            y = mapping(target.pos.y, self.rect.top, self.rect.bottom, 0, self.image_size)
-            pg.draw.rect(self.image, (255, 0, 0), (x, y, 4, 4))
+        for targets in self.groups:
+            for target in targets:
+                x = mapping(target.pos.x, self.rect.left, self.rect.right, 0, self.image_size)
+                y = mapping(target.pos.y, self.rect.top, self.rect.bottom, 0, self.image_size)
+                pg.draw.rect(self.image, (255, 0, 0), (x, y, 4, 4))
 
 
 def mapping(value, xmin, xmax, ymin, ymax):
@@ -104,7 +106,7 @@ class Game:
         self.ships = pg.sprite.Group()
         self.ships.add(self.player)
         self.bullets = pg.sprite.Group()
-        self.radar = Radar(self.player, self.ships)
+        self.radar = Radar(self.player, [self.ships])
 
         self.layers = []
 
@@ -165,7 +167,7 @@ class Game:
         time = pg.time.get_ticks()
         if self.last_spawn + 5000 < time:
             self.last_spawn = time
-            self.ships.add(Enemy(self.player, self.ships))
+            self.ships.add(Enemy([self.player], self.ships))
 
 
 class GameSingle(Game):
@@ -182,7 +184,10 @@ class GameSingle(Game):
 
             self.spawn_enemy()
 
-            self.ships.update()
+            for ship in self.ships:
+                ship.move()
+                ship.update()
+
             self.bullets.update()
             for exp in explosions:
                 exp.update()
@@ -192,7 +197,7 @@ class GameSingle(Game):
 
             for bullet in self.bullets:
                 hit = bullet.check_hit(self.ships)
-                if hit is not None:
+                if hit:
                     bullet.kill()
                     if isinstance(hit, Enemy):
                         self.player.score += 50
@@ -220,7 +225,17 @@ class GameMulti(Game):
         super().__init__(w)
 
         self.socket = socket.socket()
-        self.other_player = Player()
+        self.send_list = []
+
+        self.player = Player(get_key())
+        self.send_list.append(AddEvent(self.player.img_path, self.player.key))
+
+        self.camera = Camera(self.player)
+        self.ships = []
+        self.ghost_ships = []
+        self.ships.append(self.player)
+        self.bullets = []
+        self.radar = Radar(self.player, [self.ships, self.ghost_ships])
 
     def send(self, data):
         try:
@@ -232,25 +247,29 @@ class GameMulti(Game):
             pass
 
     def receive(self):
+        data = None
         try:
-            data = self.socket.recv(2048)
-            decoded_data = pickle.loads(data)
+            data = pickle.loads(self.socket.recv(2048))
         except ConnectionResetError:
-            return None
+            self.running = False
         except ConnectionAbortedError:
-            return None
+            self.running = False
 
-        return decoded_data
-
-    def send_player_pos(self):
-        data = {'pos': (self.player.pos.x, self.player.pos.y), 'angle': self.player.angle}
-        self.send(data)
-
-    def recv_player_pos(self):
-        data = self.receive()
         if data:
-            self.other_player.pos.x, self.other_player.pos.y = data['pos']
-            self.other_player.angle = data['angle']
+            for event in data:
+                print(event)
+                if isinstance(event, AddEvent):
+                    event.do(self.ghost_ships)
+                else:
+                    event.do()
+
+    def spawn_enemy(self):  # TODO make better
+        time = pg.time.get_ticks()
+        if self.last_spawn + 5000 < time:
+            self.last_spawn = time
+            ship = Enemy([self.player, keys_dict[self.player.key]], self.ships, get_key())
+            self.ships.append(ship)
+            self.send_list.append(AddEvent(ship.img_path, ship.key))
 
 
 class GameServer(GameMulti):
@@ -266,18 +285,22 @@ class GameServer(GameMulti):
     def loop(self):
         while self.running:
             self.window.fill((40, 50, 50))
+            self.send_list = []
 
             self.input()
 
             self.player.update()
-            self.recv_player_pos()
-            self.send_player_pos()
-            self.other_player.update()
+            self.receive()
+            self.send_list.append(MoveEvent(self.player.key, self.player.pos, self.player.angle))
+            self.send(self.send_list)
+
+            for ghost in self.ghost_ships:
+                ghost.update()
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.other_player, self.window)
+            self.camera.draw(self.ghost_ships, self.window)
 
             pg.display.update()
             clock.tick(fps)
@@ -332,18 +355,23 @@ class GameClient(GameMulti):
     def loop(self):
         while self.running:
             self.window.fill((40, 50, 50))
+            self.send_list = []
 
             self.input()
 
             self.player.update()
-            self.send_player_pos()
-            self.recv_player_pos()
-            self.other_player.update()
+
+            self.send_list.append(MoveEvent(self.player.key, self.player.pos, self.player.angle))
+            self.send(self.send_list)
+            self.receive()
+
+            for ghost in self.ghost_ships:
+                ghost.update()
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.other_player, self.window)
+            self.camera.draw(self.ghost_ships, self.window)
 
             pg.display.update()
             clock.tick(fps)
@@ -371,18 +399,50 @@ class GameClient(GameMulti):
             if len(encoded_data) == length:
                 break
             d = self.socket.recv(8192)
-            print(d)
             encoded_data += d
 
-            print(len(encoded_data))
         layer_list = pickle.loads(encoded_data)
 
         for layer_dct in layer_list:
             self.layers.append(decode_layer(layer_dct))
 
 
+class AddEvent:
+    def __init__(self, img_path, key):
+        self.img_path = img_path
+        self.key = key
+
+    def do(self, group):
+        shp = GhostShip(self.img_path)
+        keys_dict[self.key] = shp
+        used_keys.append(self.key)
+        group.append(shp)
+
+
+class MoveEvent:
+    def __init__(self, key, pos, angle):
+        self.key = key
+        self.pos = pos
+        self.angle = angle
+
+    def do(self):
+        obj = keys_dict[self.key]
+        obj.pos = self.pos
+        obj.angle = self.angle
+
+
+def get_key():
+    key = hex(randint(0, 255))
+    while key in used_keys:
+        key = hex(randint(0, 255))
+
+    used_keys.append(key)
+
+    return key
+
+
 if __name__ == '__main__':
-    game = GameServer(window)
+    game = GameSingle(window)
     game.loop()
 
 pg.quit()
