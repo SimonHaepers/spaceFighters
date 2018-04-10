@@ -84,8 +84,8 @@ class Radar:
 
         for targets in self.groups:
             for target in targets:
-                x = mapping(target.pos.x, self.rect.left, self.rect.right, 0, self.image_size)
-                y = mapping(target.pos.y, self.rect.top, self.rect.bottom, 0, self.image_size)
+                x = mapping(target.rect.centerx, self.rect.left, self.rect.right, 0, self.image_size)
+                y = mapping(target.rect.centery, self.rect.top, self.rect.bottom, 0, self.image_size)
                 pg.draw.rect(self.image, (255, 0, 0), (x, y, 4, 4))
 
 
@@ -231,14 +231,15 @@ class GameMulti(Game):
         self.send_list = []
 
         self.player = Player(get_key())
-        self.send_list.append(AddEvent(self.player.img_path, self.player.key))
+        self.send_list.append(AddEvent(self.player.img_path, self.player.rect.size, self.player.key, 'ship'))
 
         self.camera = Camera(self.player)
         self.ships = []
-        self.ghosts = []
+        self.ghost_bullets = []
+        self.ghost_ships = []
         self.ships.append(self.player)
         self.bullets = []
-        self.radar = Radar(self.player, [self.ships, self.ghosts])
+        self.radar = Radar(self.player, [self.ships, self.ghost_ships])
 
     def send(self, data):
         encoded_data = pickle.dumps(data)
@@ -254,7 +255,10 @@ class GameMulti(Game):
         if data:
             for event in data:
                 if isinstance(event, AddEvent):
-                    event.do(self.ghosts)
+                    if event.obj == 'ship':
+                        event.do(self.ghost_ships)
+                    elif event.obj == 'bullet':
+                        event.do(self.ghost_bullets)
                 else:
                     event.do()
 
@@ -264,13 +268,13 @@ class GameMulti(Game):
             self.last_spawn = time
             ship = Enemy([self.player, keys_dict[self.player.key]], self.ships, get_key())
             self.ships.append(ship)
-            self.send_list.append(AddEvent(ship.img_path, ship.key))
+            self.send_list.append(AddEvent(ship.img_path, ship.rect.size, ship.key, 'ship'))
 
     def add_bullet(self, vel):
         if vel:
             bullet = Bullet(vel, self.player, get_key())
             self.bullets.append(bullet)
-            self.send_list.append(AddEvent(bullet.path, bullet.key))
+            self.send_list.append(AddEvent(bullet.path, None, bullet.key, 'bullet'))
 
 
 class GameServer(GameMulti):
@@ -297,13 +301,13 @@ class GameServer(GameMulti):
             self.send_list.append(MoveEvent(self.player.key, self.player.rect.center, self.player.angle))
             self.send(self.send_list)
 
-            for ghost in self.ghosts:
+            for ghost in self.ghost_ships + self.ghost_bullets:
                 ghost.update()
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.ghosts, self.window)
+            self.camera.draw(self.ghost_ships + self.ghost_bullets, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
@@ -366,18 +370,21 @@ class GameClient(GameMulti):
             self.input()
 
             self.player.update()
+            for bullet in self.bullets:
+                bullet.update()
+                self.send_list.append(MoveEvent(bullet.key, bullet.rect.center, bullet.angle))
 
             self.send_list.append(MoveEvent(self.player.key, self.player.rect.center, self.player.angle))
             self.send(self.send_list)
             self.receive()
 
-            for ghost in self.ghosts:
+            for ghost in self.ghost_ships + self.ghost_bullets:
                 ghost.update()
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.ghosts, self.window)
+            self.camera.draw(self.ghost_ships + self.ghost_bullets, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
@@ -418,12 +425,14 @@ class GameClient(GameMulti):
 
 
 class AddEvent:
-    def __init__(self, img_path, key):
+    def __init__(self, img_path, img_size, key, obj):
         self.img_path = img_path
+        self.img_size = img_size
         self.key = key
+        self.obj = obj
 
     def do(self, group):
-        shp = Ghost(self.img_path)
+        shp = Ghost(self.img_path, self.img_size)
         keys_dict[self.key] = shp
         used_keys.append(self.key)
         group.append(shp)
@@ -452,10 +461,12 @@ def get_key():
 
 
 class Ghost(pg.sprite.Sprite):
-    def __init__(self, img_path):
+    def __init__(self, img_path, img_size):
         super().__init__()
 
         self.image = pg.image.load(img_path)
+        if img_size:
+            self.image = pg.transform.scale(self.image, img_size)
         self.original_img = self.image.copy()
         self.rect = self.image.get_rect()
         self.angle = 0
