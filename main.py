@@ -253,7 +253,9 @@ class GameMulti(Game):
             self.running = False
 
         if data:
+            print(data)
             for event in data:
+                print(event)
                 if isinstance(event, AddEvent):
                     if event.obj == 'ship':
                         event.do(self.ghost_ships)
@@ -266,6 +268,7 @@ class GameMulti(Game):
         time = pg.time.get_ticks()
         if self.last_spawn + 5000 < time:
             self.last_spawn = time
+            print(keys_dict)
             ship = Enemy([self.player, keys_dict[self.player.key]], self.ships, get_key())
             self.ships.append(ship)
             self.send_list.append(AddEvent(ship.img_path, ship.rect.size, ship.key, 'ship'))
@@ -293,8 +296,6 @@ class GameServer(GameMulti):
 
             self.input()
 
-            self.spawn_enemy()
-
             for ship in self.ships:
                 ship.update()
                 self.send_list.append(MoveEvent(ship.key, ship.rect.center, ship.angle))
@@ -315,6 +316,8 @@ class GameServer(GameMulti):
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
+
+            self.spawn_enemy()
 
             pg.display.update()
             self.send_list = []
@@ -373,12 +376,14 @@ class GameClient(GameMulti):
 
             self.input()
 
-            self.player.update()
+            for ship in self.ships:
+                ship.update()
+                self.send_list.append(MoveEvent(ship.key, ship.rect.center, ship.angle))
+
             for bullet in self.bullets:
                 bullet.update()
                 self.send_list.append(MoveEvent(bullet.key, bullet.rect.center, bullet.angle))
 
-            self.send_list.append(MoveEvent(self.player.key, self.player.rect.center, self.player.angle))
             self.send(self.send_list)
             self.receive()
 
@@ -392,6 +397,8 @@ class GameClient(GameMulti):
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
+
+            self.spawn_enemy()
 
             pg.display.update()
             self.send_list = []
