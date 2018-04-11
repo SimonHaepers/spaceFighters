@@ -231,12 +231,13 @@ class GameMulti(Game):
         self.send_list = []
 
         self.player = Player(get_key())
-        self.send_list.append(AddEvent(self.player.img_path, self.player.rect.size, self.player.key, 'ship'))
+        self.send_list.append(AddEvent(self.player.img_path, self.player.rect.size, self.player.key, 'player'))
 
         self.camera = Camera(self.player)
         self.ships = []
         self.ghost_bullets = []
         self.ghost_ships = []
+        self.ghost_players = []
         self.ships.append(self.player)
         self.bullets = []
         self.radar = Radar(self.player, [self.ships, self.ghost_ships])
@@ -253,14 +254,14 @@ class GameMulti(Game):
             self.running = False
 
         if data:
-            print(data)
             for event in data:
-                print(event)
                 if isinstance(event, AddEvent):
                     if event.obj == 'ship':
                         event.do(self.ghost_ships)
                     elif event.obj == 'bullet':
                         event.do(self.ghost_bullets)
+                    elif event.obj == 'player':
+                        event.do(self.ghost_players)
                 else:
                     event.do()
 
@@ -269,7 +270,7 @@ class GameMulti(Game):
         if self.last_spawn + 5000 < time:
             self.last_spawn = time
             print(keys_dict)
-            ship = Enemy([self.player, keys_dict[self.player.key]], self.ships, get_key())
+            ship = Enemy([self.player] + self.ghost_players, self.ships, get_key())  # TODO fix this
             self.ships.append(ship)
             self.send_list.append(AddEvent(ship.img_path, ship.rect.size, ship.key, 'ship'))
 
@@ -293,6 +294,9 @@ class GameServer(GameMulti):
     def loop(self):
         while self.running:
             self.window.fill((40, 50, 50))
+            print(keys_dict)
+            print(used_keys)
+            print()
 
             self.input()
 
@@ -306,13 +310,14 @@ class GameServer(GameMulti):
             self.receive()
             self.send(self.send_list)
 
-            for ghost in self.ghost_ships + self.ghost_bullets:
+            for ghost in self.ghost_ships + self.ghost_bullets + self.ghost_players:
                 ghost.update()
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.ghost_ships + self.ghost_bullets + self.bullets + self.ships, self.window)
+            self.camera.draw(self.ghost_ships + self.ghost_bullets + self.ghost_players, self.window)
+            self.camera.draw(self.bullets + self.ships, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
@@ -387,18 +392,17 @@ class GameClient(GameMulti):
             self.send(self.send_list)
             self.receive()
 
-            for ghost in self.ghost_ships + self.ghost_bullets:
+            for ghost in self.ghost_ships + self.ghost_bullets + self.ghost_players:
                 ghost.update()
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.ghost_ships + self.ghost_bullets + self.bullets, self.window)
+            self.camera.draw(self.ghost_ships + self.ghost_bullets + self.ghost_players, self.window)
+            self.camera.draw(self.bullets + self.ships, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
-
-            self.spawn_enemy()
 
             pg.display.update()
             self.send_list = []
