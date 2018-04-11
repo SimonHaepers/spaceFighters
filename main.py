@@ -8,6 +8,7 @@ from os import walk
 from random import choice, randint
 import pickle
 from bullet import Bullet
+from vector2d import Vector2d
 
 pg.init()
 pg.joystick.init()
@@ -270,7 +271,7 @@ class GameMulti(Game):
         if self.last_spawn + 5000 < time:
             self.last_spawn = time
             print(keys_dict)
-            ship = Enemy([self.player] + self.ghost_players, self.ships, get_key())  # TODO fix this
+            ship = Enemy([self.player] + self.ghost_players, self.ships, key=get_key())  # TODO fix this
             self.ships.append(ship)
             self.send_list.append(AddEvent(ship.img_path, ship.rect.size, ship.key, 'ship'))
 
@@ -294,18 +295,15 @@ class GameServer(GameMulti):
     def loop(self):
         while self.running:
             self.window.fill((40, 50, 50))
-            print(keys_dict)
-            print(used_keys)
-            print()
 
             self.input()
 
             for ship in self.ships:
                 ship.update()
-                self.send_list.append(MoveEvent(ship.key, ship.rect.center, ship.angle))
+                self.send_list.append(MoveEvent(ship.key, ship.pos, ship.angle))
             for bullet in self.bullets:
                 bullet.update()
-                self.send_list.append(MoveEvent(bullet.key, bullet.rect.center, bullet.angle))
+                self.send_list.append(MoveEvent(bullet.key, bullet.pos, bullet.angle))
 
             self.receive()
             self.send(self.send_list)
@@ -383,11 +381,11 @@ class GameClient(GameMulti):
 
             for ship in self.ships:
                 ship.update()
-                self.send_list.append(MoveEvent(ship.key, ship.rect.center, ship.angle))
+                self.send_list.append(MoveEvent(ship.key, ship.pos, ship.angle))
 
             for bullet in self.bullets:
                 bullet.update()
-                self.send_list.append(MoveEvent(bullet.key, bullet.rect.center, bullet.angle))
+                self.send_list.append(MoveEvent(bullet.key, bullet.pos, bullet.angle))
 
             self.send(self.send_list)
             self.receive()
@@ -461,7 +459,7 @@ class MoveEvent:
 
     def do(self):
         obj = keys_dict[self.key]
-        obj.rect.center = self.pos
+        obj.pos = self.pos
         obj.angle = self.angle
 
 
@@ -479,6 +477,7 @@ class Ghost(pg.sprite.Sprite):
     def __init__(self, img_path, img_size):
         super().__init__()
 
+        self.pos = Vector2d(0, 0)
         self.image = pg.image.load(img_path)
         if img_size:
             self.image = pg.transform.scale(self.image, img_size)
@@ -489,6 +488,7 @@ class Ghost(pg.sprite.Sprite):
     def update(self):
         self.image = pg.transform.rotate(self.original_img, 270 - degrees(self.angle))
         self.rect.size = self.image.get_size()
+        self.rect.center = self.pos.x, self.pos.y
 
 
 if __name__ == '__main__':
