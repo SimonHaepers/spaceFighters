@@ -270,7 +270,6 @@ class GameMulti(Game):
         time = pg.time.get_ticks()
         if self.last_spawn + 5000 < time:
             self.last_spawn = time
-            print(keys_dict)
             ship = Enemy([self.player] + self.ghost_players, self.ships, key=get_key())  # TODO fix this
             self.ships.append(ship)
             self.send_list.append(AddEvent(ship.img_path, ship.rect.size, ship.key, 'ship'))
@@ -298,6 +297,8 @@ class GameServer(GameMulti):
 
             self.input()
 
+            self.spawn_enemy()
+
             for ship in self.ships:
                 ship.update()
                 self.send_list.append(MoveEvent(ship.key, ship.pos, ship.angle))
@@ -319,8 +320,6 @@ class GameServer(GameMulti):
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
-
-            self.spawn_enemy()
 
             pg.display.update()
             self.send_list = []
