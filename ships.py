@@ -4,7 +4,6 @@ import random
 from os import walk
 from vector2d import Vector2d
 from settings import fps, particles, explosions, mapSize
-from bullet import Bullet
 from particle import Particle, Explosion
 
 red_ship = pg.transform.scale(pg.image.load('png/playerShip1_red.png'), (80, 60))
@@ -96,13 +95,13 @@ class Player(Ship):
         self.rect.center = self.pos.x, self.pos.y
 
     def power(self):
-        x = self.pos.x + self.vel.x + math.cos(self.angle) * -random.randint(35, 45)
-        y = self.pos.y + self.vel.y + math.sin(self.angle) * -random.randint(35, 45)
-        self.fire_particle.draw(x, y, self.angle)
-        self.fire_particle.add(particles)
         direction = Vector2d(math.cos(self.angle), math.sin(self.angle))
         direction.mult(self.max_power)
         self.add_vel(direction)
+        x = self.pos.x + self.vel.x + math.cos(self.angle) * -random.randint(30, 40)
+        y = self.pos.y + self.vel.y + math.sin(self.angle) * -random.randint(30, 40)
+        self.fire_particle.draw(x, y, self.angle)
+        self.fire_particle.add(particles)
 
     def die(self):
         explosions.append(Explosion(exps, self.pos.x, self.pos.y))
