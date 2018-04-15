@@ -7,12 +7,12 @@ laser_explosion = pg.image.load('png/laserGreen14.png')
 
 
 class Bullet(pg.sprite.Sprite):
-    def __init__(self, pos, vector, shooter, key=None):
+    def __init__(self, pos, vector, angle, shooter, key=None):
         super().__init__()
 
         self.pos = pos.copy()
         self.vel = vector.copy()
-        self.angle = atan2(self.vel.y, self.vel.x)
+        self.angle = angle
         self.path = 'png/laser.png'
         self.image = pg.transform.rotate(pg.image.load(self.path), 270 - degrees(self.angle))
         self.rect = self.image.get_rect()

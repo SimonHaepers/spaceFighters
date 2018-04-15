@@ -1,6 +1,6 @@
 import pygame as pg
 from math import sqrt, atan2, degrees
-from ships import Player, Enemy
+from ships import Player, Enemy, Ship
 from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
 from background import Layer, decode_layer
 import socket
@@ -195,7 +195,7 @@ class Game:
             self.ships.add(Enemy([self.player], self.ships))
 
     def add_bullet(self, shooter, vel):
-        self.bullets.add(Bullet(shooter.pos, vel, self.player))
+        self.bullets.add(Bullet(shooter.pos, vel, shooter.angle, self.player))
 
 
 class GameSingle(Game):
@@ -301,9 +301,24 @@ class GameMulti(Game):
             self.send_list.append(AddEvent(ship.img_path, ship.rect.size, ship.key, 'ship'))
 
     def add_bullet(self, shooter, vel):
-        bullet = Bullet(shooter.pos, vel, shooter, get_key())
+        bullet = Bullet(shooter.pos, vel, shooter.angle, shooter, get_key())
         self.bullets.append(bullet)
-        self.send_list.append(ShootEvent(bullet.pos, bullet.vel, bullet.key))
+        self.send_list.append(ShootEvent(bullet.pos, bullet.vel, bullet.angle, bullet.key))
+
+    def collision(self):
+        handled = []
+        for collision in check_collision(self.ships + self.bullets):
+            if collision[0] not in handled and collision[1] not in handled:
+                if isinstance(collision[0], Ship) and isinstance(collision[1], Ship):
+                    collision[0].die()
+                    collision[1].die()
+                    self.send_list.append(KillEvent(collision[0].key))
+                    self.send_list.append(KillEvent(collision[1].key))
+                elif isinstance(collision[0], Bullet) or isinstance(collision[1], Bullet):
+                    collision[0].hit()
+                    collision[1].hit()
+            handled.append(collision[0])
+            handled.append(collision[1])
 
 
 class GameServer(GameMulti):
@@ -329,13 +344,7 @@ class GameServer(GameMulti):
             for bullet in self.bullets:
                 bullet.update()
 
-            all_sprites = self.ships + self.bullets + self.ghost_ships + self.ghost_bullets + self.ghost_players
-            handled = []
-            for collision in check_collision(all_sprites):
-                for sprite in collision:
-                    if sprite not in handled:
-                        # sprite.hit()
-                        handled.append(sprite)
+            self.collision()
 
             self.receive()
             self.send(self.send_list)
@@ -346,6 +355,7 @@ class GameServer(GameMulti):
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
+            all_sprites = self.bullets + self.ghost_bullets + self.ships + self.ghost_ships + self.ghost_players
             self.camera.draw(all_sprites, self.window)
 
             self.radar.update()
@@ -390,6 +400,8 @@ class GameClient(GameMulti):
 
             for bullet in self.bullets:
                 bullet.update()
+
+            self.collision()
 
             self.send(self.send_list)
             self.receive()
@@ -454,13 +466,14 @@ class MoveEvent:
 
 
 class ShootEvent:
-    def __init__(self, pos, vel, key):
+    def __init__(self, pos, vel, angle, key):
         self.pos = pos.copy()
         self.vel = vel.copy()
         self.key = key
+        self.angle = angle
 
     def do(self, group):
-        bullet = Bullet(self.pos, self.vel, None, self.key)
+        bullet = Bullet(self.pos, self.vel, self.angle, None, self.key)
         keys_dict[self.key] = bullet
         group.append(bullet)
 
@@ -473,6 +486,14 @@ def get_key():
     used_keys.append(key)
 
     return key
+
+
+class KillEvent:
+    def __init__(self, key):
+        self.key = key
+
+    def do(self):
+        keys_dict[self.key].die()
 
 
 class Ghost(pg.sprite.Sprite):
@@ -491,11 +512,3 @@ class Ghost(pg.sprite.Sprite):
         self.image = pg.transform.rotate(self.original_img, 270 - degrees(self.angle))
         self.rect.size = self.image.get_size()
         self.rect.center = self.pos.x, self.pos.y
-
-    def hit(self):
-        pass
-
-
-if __name__ == '__main__':
-    GameSingle(window).loop()
-    pg.quit()
