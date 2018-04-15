@@ -9,6 +9,7 @@ from random import choice, randint
 import pickle
 from bullet import Bullet
 from vector2d import Vector2d
+from quadtree import Quadtree
 
 pg.init()
 pg.joystick.init()
@@ -20,6 +21,7 @@ font = pg.font.Font('png/kenvector_future.ttf', 50)
 rect_space = pg.Rect(0, 0, mapSize, mapSize)
 keys_dict = {}
 used_keys = []
+collision_tree = Quadtree(0, 0, mapSize, mapSize)
 
 meteor_pngs = []
 for (dirpath, dirnames, files) in walk('png/Meteors'):
@@ -100,13 +102,22 @@ def mapping(value, xmin, xmax, ymin, ymax):
 
 
 def check_collision(group):
+    checks = 0
+    mask_checks = 0
+    collision_tree.clear()
+    for sprite in group:
+        collision_tree.insert(sprite)
+
     collision_list = []
     for sprite in group:
-        for other in group:
+        for other in collision_tree.query(sprite.rect):
             if sprite != other:
+                checks += 1
                 if pg.sprite.collide_rect(sprite, other):
+                    mask_checks += 1
                     if pg.sprite.collide_mask(sprite, other):
-                        collision_list.append(sprite, other)
+                        collision_list.append((sprite, other))
+
     return collision_list
 
 
@@ -195,6 +206,7 @@ class GameSingle(Game):
 
     def loop(self):  # TODO divide into smaller functions
         while self.running:
+            print()
             self.window.fill((40, 50, 50))
 
             self.input()
@@ -317,12 +329,12 @@ class GameServer(GameMulti):
             for bullet in self.bullets:
                 bullet.update()
 
-            all_sprites = self.ships + self.bullets + self.ghost_ships + self.ghost_bullets, self.ghost_players
+            all_sprites = self.ships + self.bullets + self.ghost_ships + self.ghost_bullets + self.ghost_players
             handled = []
             for collision in check_collision(all_sprites):
                 for sprite in collision:
                     if sprite not in handled:
-                        sprite.hit()
+                        # sprite.hit()
                         handled.append(sprite)
 
             self.receive()
@@ -432,7 +444,7 @@ class AddEvent:
 class MoveEvent:
     def __init__(self, key, pos, angle):
         self.key = key
-        self.pos = pos
+        self.pos = pos.copy()
         self.angle = angle
 
     def do(self):
@@ -479,6 +491,9 @@ class Ghost(pg.sprite.Sprite):
         self.image = pg.transform.rotate(self.original_img, 270 - degrees(self.angle))
         self.rect.size = self.image.get_size()
         self.rect.center = self.pos.x, self.pos.y
+
+    def hit(self):
+        pass
 
 
 if __name__ == '__main__':

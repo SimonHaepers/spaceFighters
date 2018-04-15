@@ -133,7 +133,7 @@ class Enemy(Ship):
         for target in self.targets:
             n_des = target.pos.sub(self.pos)
             if n_des.get_mag() < des.get_mag():
-                des = n_des
+                des = n_des.copy()
 
         des.mag(self.max_speed)
         des = des.sub(self.vel)

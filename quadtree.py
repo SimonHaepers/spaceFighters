@@ -5,7 +5,7 @@ class Quadtree:
     def __init__(self, x, y, w, h):
         self.bound = pg.Rect(x, y, w, h)
         self.divided = False
-        self.limit = 20
+        self.limit = 4
         self.objs = []
         self.nodes = []
 
@@ -45,3 +45,7 @@ class Quadtree:
 
         return group
 
+    def clear(self):
+        self.divided = False
+        self.nodes = []
+        self.objs = []

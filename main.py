@@ -105,3 +105,5 @@ while running:
 
     window_log[0].draw(window)
     pg.display.update()
+
+pg.quit()
