@@ -99,6 +99,17 @@ def mapping(value, xmin, xmax, ymin, ymax):
     return ymin + (scaled_value * y_span)
 
 
+def check_collision(group):
+    collision_list = []
+    for sprite in group:
+        for other in group:
+            if sprite != other:
+                if pg.sprite.collide_rect(sprite, other):
+                    if pg.sprite.collide_mask(sprite, other):
+                        collision_list.append(sprite, other)
+    return collision_list
+
+
 class Game:
     def __init__(self, w):
         self.window = w
@@ -280,7 +291,7 @@ class GameMulti(Game):
     def add_bullet(self, shooter, vel):
         bullet = Bullet(shooter.pos, vel, shooter, get_key())
         self.bullets.append(bullet)
-        self.send_list.append(ShootEvent(bullet.pos, bullet.vel))
+        self.send_list.append(ShootEvent(bullet.pos, bullet.vel, bullet.key))
 
 
 class GameServer(GameMulti):
@@ -306,6 +317,14 @@ class GameServer(GameMulti):
             for bullet in self.bullets:
                 bullet.update()
 
+            all_sprites = self.ships + self.bullets + self.ghost_ships + self.ghost_bullets, self.ghost_players
+            handled = []
+            for collision in check_collision(all_sprites):
+                for sprite in collision:
+                    if sprite not in handled:
+                        sprite.hit()
+                        handled.append(sprite)
+
             self.receive()
             self.send(self.send_list)
 
@@ -315,8 +334,7 @@ class GameServer(GameMulti):
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.player, self.window)
-            self.camera.draw(self.ghost_ships + self.ghost_bullets + self.ghost_players, self.window)
-            self.camera.draw(self.bullets + self.ships, self.window)
+            self.camera.draw(all_sprites, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
@@ -424,12 +442,15 @@ class MoveEvent:
 
 
 class ShootEvent:
-    def __init__(self, pos, vel):
-        self.pos = pos
-        self.vel = vel
+    def __init__(self, pos, vel, key):
+        self.pos = pos.copy()
+        self.vel = vel.copy()
+        self.key = key
 
     def do(self, group):
-        group.append(Bullet(self.pos, self.vel, None))
+        bullet = Bullet(self.pos, self.vel, None, self.key)
+        keys_dict[self.key] = bullet
+        group.append(bullet)
 
 
 def get_key():

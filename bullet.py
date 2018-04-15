@@ -10,7 +10,7 @@ class Bullet(pg.sprite.Sprite):
     def __init__(self, pos, vector, shooter, key=None):
         super().__init__()
 
-        self.pos = pos
+        self.pos = pos.copy()
         self.vel = vector.copy()
         self.angle = atan2(self.vel.y, self.vel.x)
         self.path = 'png/laser.png'
@@ -42,3 +42,8 @@ class Bullet(pg.sprite.Sprite):
                         return sprt
 
         return None
+
+    def hit(self):
+        self.explosion.draw(self.pos.x, self.pos.y, 0)
+        self.explosion.add(particles)
+        self.kill()
