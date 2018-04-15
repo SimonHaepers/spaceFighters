@@ -142,9 +142,9 @@ class Game:
         if self.player.alive:
             if self.mode_joystick:
                 if self.joystick.get_button(4):
-                    bullet = self.player.shoot()
-                    if bullet:
-                        bullet.add(self.bullets)
+                    shot = self.player.shoot()
+                    if shot:
+                        self.add_bullet(self.player, shot)
                 if self.joystick.get_button(5):
                     self.player.power()
 
@@ -156,7 +156,9 @@ class Game:
                 if buttons[0] == 1:
                     self.player.power()
                 if buttons[2] == 1:
-                    self.add_bullet(self.player.shoot())
+                    shot = self.player.shoot()
+                    if shot:
+                        self.add_bullet(self.player, shot)
 
                 mouse_pos = pg.mouse.get_pos()
                 x = mouse_pos[0] - (self.player.rect.centerx - self.camera.rect.x)
@@ -170,9 +172,8 @@ class Game:
             self.last_spawn = time
             self.ships.add(Enemy([self.player], self.ships))
 
-    def add_bullet(self, vel):
-        if vel:
-            self.bullets.add(Bullet(vel, self.player))
+    def add_bullet(self, shooter, vel):
+        self.bullets.add(Bullet(shooter.pos, vel, self.player))
 
 
 class GameSingle(Game):
@@ -208,8 +209,8 @@ class GameSingle(Game):
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
-            self.camera.draw(self.ships, self.window)
             self.camera.draw(self.bullets, self.window)
+            self.camera.draw(self.ships, self.window)
             self.camera.draw(particles, self.window)
 
             particles.empty()
@@ -259,10 +260,12 @@ class GameMulti(Game):
                 if isinstance(event, AddEvent):
                     if event.obj == 'ship':
                         event.do(self.ghost_ships)
-                    elif event.obj == 'bullet':
-                        event.do(self.ghost_bullets)
                     elif event.obj == 'player':
                         event.do(self.ghost_players)
+
+                elif isinstance(event, ShootEvent):
+                    event.do(self.ghost_bullets)
+
                 else:
                     event.do()
 
@@ -274,11 +277,10 @@ class GameMulti(Game):
             self.ships.append(ship)
             self.send_list.append(AddEvent(ship.img_path, ship.rect.size, ship.key, 'ship'))
 
-    def add_bullet(self, vel):
-        if vel:
-            bullet = Bullet(vel, self.player, get_key())
-            self.bullets.append(bullet)
-            self.send_list.append(AddEvent(bullet.path, None, bullet.key, 'bullet'))
+    def add_bullet(self, shooter, vel):
+        bullet = Bullet(shooter.pos, vel, shooter, get_key())
+        self.bullets.append(bullet)
+        self.send_list.append(ShootEvent(bullet.pos, bullet.vel))
 
 
 class GameServer(GameMulti):
@@ -303,7 +305,6 @@ class GameServer(GameMulti):
                 self.send_list.append(MoveEvent(ship.key, ship.pos, ship.angle))
             for bullet in self.bullets:
                 bullet.update()
-                self.send_list.append(MoveEvent(bullet.key, bullet.pos, bullet.angle))
 
             self.receive()
             self.send(self.send_list)
@@ -359,7 +360,6 @@ class GameClient(GameMulti):
 
             for bullet in self.bullets:
                 bullet.update()
-                self.send_list.append(MoveEvent(bullet.key, bullet.pos, bullet.angle))
 
             self.send(self.send_list)
             self.receive()
@@ -421,6 +421,15 @@ class MoveEvent:
         obj = keys_dict[self.key]
         obj.pos = self.pos
         obj.angle = self.angle
+
+
+class ShootEvent:
+    def __init__(self, pos, vel):
+        self.pos = pos
+        self.vel = vel
+
+    def do(self, group):
+        group.append(Bullet(self.pos, self.vel, None))
 
 
 def get_key():

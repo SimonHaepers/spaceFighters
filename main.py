@@ -46,7 +46,7 @@ background = pg.Surface((windowWidth, windowHeight))
 background.fill((40, 40, 50))
 
 starting_window = Window(windowWidth, windowHeight, background)
-starting_window.widgets.append(Button(windowWidth / 2, 200, 200, 50, play_single, img=button_img, text='Singel'))
+starting_window.widgets.append(Button(windowWidth / 2, 200, 200, 50, play_single, img=button_img, text='Single'))
 starting_window.widgets.append(Button(windowWidth / 2, 300, 200, 50, play_multi, img=button_img, text='Multi'))
 starting_window.widgets.append(Button(windowWidth / 2, 400, 200, 50, stop, img=button_img, text='quit'))
 

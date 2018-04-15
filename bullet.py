@@ -1,5 +1,5 @@
 import pygame as pg
-from math import degrees
+from math import degrees, atan2
 from particle import Particle
 from settings import particles, mapSize
 
@@ -7,12 +7,12 @@ laser_explosion = pg.image.load('png/laserGreen14.png')
 
 
 class Bullet(pg.sprite.Sprite):
-    def __init__(self, vector, shooter, key=None):
+    def __init__(self, pos, vector, shooter, key=None):
         super().__init__()
 
-        self.angle = shooter.angle
-        self.pos = shooter.pos.copy()
+        self.pos = pos
         self.vel = vector.copy()
+        self.angle = atan2(self.vel.y, self.vel.x)
         self.path = 'png/laser.png'
         self.image = pg.transform.rotate(pg.image.load(self.path), 270 - degrees(self.angle))
         self.rect = self.image.get_rect()
@@ -42,6 +42,3 @@ class Bullet(pg.sprite.Sprite):
                         return sprt
 
         return None
-
-
-

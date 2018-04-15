@@ -176,4 +176,3 @@ class Enemy(Ship):
             sum_vector.norm()
 
         return sum_vector
-

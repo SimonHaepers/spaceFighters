@@ -49,5 +49,3 @@ class Window:
     def collision(self, x, y):
         for widget in self.widgets:
             widget.collision(x, y)
-
-
