@@ -102,8 +102,6 @@ def mapping(value, xmin, xmax, ymin, ymax):
 
 
 def check_collision(group):
-    checks = 0
-    mask_checks = 0
     collision_tree.clear()
     for sprite in group:
         collision_tree.insert(sprite)
@@ -112,9 +110,7 @@ def check_collision(group):
     for sprite in group:
         for other in collision_tree.query(sprite.rect):
             if sprite != other:
-                checks += 1
                 if pg.sprite.collide_rect(sprite, other):
-                    mask_checks += 1
                     if pg.sprite.collide_mask(sprite, other):
                         collision_list.append((sprite, other))
 
@@ -197,6 +193,9 @@ class Game:
     def add_bullet(self, shooter, vel):
         self.bullets.add(Bullet(shooter.pos, vel, shooter.angle, self.player))
 
+    def game_over(self):
+        self.running = False
+
 
 class GameSingle(Game):
     def __init__(self, w):
@@ -277,6 +276,8 @@ class GameMulti(Game):
             data = pickle.loads(self.socket.recv(2048))
         except EOFError:
             self.running = False
+        except ConnectionError:
+            self.running = False
 
         if data:
             for event in data:
@@ -314,9 +315,11 @@ class GameMulti(Game):
                     collision[1].die()
                     self.send_list.append(KillEvent(collision[0].key))
                     self.send_list.append(KillEvent(collision[1].key))
-                elif isinstance(collision[0], Bullet) or isinstance(collision[1], Bullet):
-                    collision[0].hit()
-                    collision[1].hit()
+                elif isinstance(collision[0], Bullet):
+                    collision[0].check_hit(collision[1])
+                elif isinstance(collision[1], Bullet):
+                    collision[1].check_hit(collision[0])
+
             handled.append(collision[0])
             handled.append(collision[1])
 
@@ -338,13 +341,21 @@ class GameServer(GameMulti):
 
             self.spawn_enemy()
 
+            self.collision()
+
+            for ship in self.ships:
+                if not ship.check_alive():
+                    if ship == self.player:
+                        self.game_over()
+                    self.ships.remove(ship)
+                    self.send_list.append(KillEvent(ship.key))
+
             for ship in self.ships:
                 ship.update()
                 self.send_list.append(MoveEvent(ship.key, ship.pos, ship.angle))
+
             for bullet in self.bullets:
                 bullet.update()
-
-            self.collision()
 
             self.receive()
             self.send(self.send_list)
@@ -394,14 +405,19 @@ class GameClient(GameMulti):
 
             self.input()
 
+            self.collision()
+
+            for ship in self.ships:
+                if not ship.check_alive():
+                    self.ships.remove(ship)
+                    self.send_list.append(KillEvent(ship.key))
+
             for ship in self.ships:
                 ship.update()
                 self.send_list.append(MoveEvent(ship.key, ship.pos, ship.angle))
 
             for bullet in self.bullets:
                 bullet.update()
-
-            self.collision()
 
             self.send(self.send_list)
             self.receive()
@@ -512,3 +528,6 @@ class Ghost(pg.sprite.Sprite):
         self.image = pg.transform.rotate(self.original_img, 270 - degrees(self.angle))
         self.rect.size = self.image.get_size()
         self.rect.center = self.pos.x, self.pos.y
+
+    def die(self):
+        self.kill()

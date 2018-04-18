@@ -1,5 +1,5 @@
 import pygame as pg
-from math import degrees, atan2
+from math import degrees
 from particle import Particle
 from settings import particles, mapSize
 
@@ -28,22 +28,27 @@ class Bullet(pg.sprite.Sprite):
         if self.pos.x > mapSize or self.pos.x < 0 or self.pos.y > mapSize or self.pos.y < 0:
             self.kill()
 
-    def check_hit(self, group):
-        for sprt in group:
-            if sprt != self.shooter:
-                if pg.sprite.collide_rect(self, sprt):
-                    collide_pos = pg.sprite.collide_mask(self, sprt)
-                    if collide_pos is not None:
-                        self.explosion.draw(self.pos.x + collide_pos[0], self.pos.y + collide_pos[1], 0)
-                        self.explosion.add(particles)
-                        if hasattr(sprt, 'hit'):
-                            sprt.hit()
+    # def check_hit(self, group):
+    #     for sprt in group:
+    #         if sprt != self.shooter:
+    #             if pg.sprite.collide_rect(self, sprt):
+    #                 collide_pos = pg.sprite.collide_mask(self, sprt)
+    #                 if collide_pos is not None:
+    #                     self.explosion.draw(self.pos.x + collide_pos[0], self.pos.y + collide_pos[1], 0)
+    #                     self.explosion.add(particles)
+    #                     if hasattr(sprt, 'hit'):
+    #                         sprt.hit()
+    #
+    #                     return sprt
+    #
+    #     return None
 
-                        return sprt
+    def check_hit(self, sprite):
+        if sprite != self.shooter:
+            self.die()
+            self.shooter.hit()
 
-        return None
-
-    def hit(self):
+    def die(self):
         self.explosion.draw(self.pos.x, self.pos.y, 0)
         self.explosion.add(particles)
         self.kill()

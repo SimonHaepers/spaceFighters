@@ -25,6 +25,7 @@ class Ship(pg.sprite.Sprite):
         self.pos = Vector2d(0, 0)
         self.vel = Vector2d(0, 0)
         self.angle = 0
+        self.alive = True
         self.max_power = 30.0 / fps
         self.min_speed = 24.0 / fps
         self.max_speed = 600 / fps
@@ -73,6 +74,13 @@ class Ship(pg.sprite.Sprite):
         explosions.append(Explosion(exps, self.pos.x, self.pos.y))
         self.kill()
 
+    def check_alive(self):
+        if not self.alive or self.health <= 0:
+            self.die()
+            return False
+
+        return True
+
 
 class Player(Ship):
     def __init__(self, key=None):
@@ -82,11 +90,11 @@ class Player(Ship):
         self.image = pg.transform.scale(pg.image.load(self.img_path), (80, 60))
         self.original_img = self.image.copy()
         self.rect = self.image.get_rect()
-        self.pos = Vector2d(100, 100)
+        self.pos = Vector2d(random.randint(0, mapSize), random.randint(0, mapSize))
+        self.rect.center = self.pos.x, self.pos.y
         self.max_speed = 780 / fps
         self.fire_particle = Particle(fire)
         self.score = 0
-        self.alive = True
         self.key = key
 
     def update(self):
@@ -118,6 +126,7 @@ class Enemy(Ship):
         self.image = pg.transform.scale(pg.image.load(self.img_path), (80, 60))
         self.original_img = self.image
         self.rect = self.image.get_rect()
+        self.rect.center = self.pos.x, self.pos.y
         self.targets = targets
         self.ships = ships
         self.max_power = 24.0 / fps
