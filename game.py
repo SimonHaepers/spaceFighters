@@ -285,6 +285,7 @@ class GameMulti(Game):
         if data:
             for event in data:
                 if isinstance(event, AddEvent):
+                    print(event)
                     if event.obj == 'ship':
                         event.do(self.ghost_ships)
                     elif event.obj == 'player':
@@ -315,12 +316,12 @@ class GameMulti(Game):
             if collision[0] not in handled and collision[1] not in handled:
 
                 if isinstance(collision[0], Ship) and isinstance(collision[1], Ship):
-                    if not isinstance(collision[0], Ghost):
-                        self.explosions.append(collision[0].die())
-                        self.send_list.append(KillEvent(collision[0].key))
+                    self.explosions.append(collision[0].die())
+                    self.explosions.append(collision[1].die())
 
+                    if not isinstance(collision[0], Ghost):
+                        self.send_list.append(KillEvent(collision[0].key))
                     if not isinstance(collision[1], Ghost):
-                        self.explosions.append(collision[1].die())
                         self.send_list.append(KillEvent(collision[1].key))
 
                 elif isinstance(collision[0], Bullet):
@@ -359,7 +360,7 @@ class GameMulti(Game):
                 self.ghost_bullets.remove(bullet)
 
         for ship in self.ghost_ships:
-            if not ship.check_alive():
+            if ship.check_alive():
                 self.ghost_ships.remove(ship)
 
 
