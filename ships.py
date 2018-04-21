@@ -71,15 +71,13 @@ class Ship(pg.sprite.Sprite):
         self.health -= 20
 
     def die(self):
-        explosions.append(Explosion(exps, self.pos.x, self.pos.y))
         self.kill()
+        self.alive = False
+        return Explosion(exps, self.pos.x, self.pos.y)
 
     def check_alive(self):
         if not self.alive or self.health <= 0:
-            self.die()
-            return False
-
-        return True
+            return self.die()
 
 
 class Player(Ship):
@@ -93,7 +91,6 @@ class Player(Ship):
         self.pos = Vector2d(random.randint(0, mapSize), random.randint(0, mapSize))
         self.rect.center = self.pos.x, self.pos.y
         self.max_speed = 780 / fps
-        self.fire_particle = Particle(fire)
         self.score = 0
         self.key = key
 
@@ -108,13 +105,8 @@ class Player(Ship):
         self.add_vel(direction)
         x = self.pos.x + self.vel.x + math.cos(self.angle) * -random.randint(30, 40)
         y = self.pos.y + self.vel.y + math.sin(self.angle) * -random.randint(30, 40)
-        self.fire_particle.draw(x, y, self.angle)
-        self.fire_particle.add(particles)
 
-    def die(self):
-        explosions.append(Explosion(exps, self.pos.x, self.pos.y))
-        self.kill()
-        self.alive = False
+        return Particle(fire, x, y, self.angle)
 
 
 class Enemy(Ship):
@@ -185,3 +177,21 @@ class Enemy(Ship):
             sum_vector.norm()
 
         return sum_vector
+
+
+class Ghost(Ship):
+    def __init__(self, img_path, img_size):
+        super().__init__()
+
+        self.pos = Vector2d(0, 0)
+        self.image = pg.image.load(img_path)
+        if img_size:
+            self.image = pg.transform.scale(self.image, img_size)
+        self.original_img = self.image.copy()
+        self.rect = self.image.get_rect()
+        self.angle = 0
+
+    def update(self):
+        self.image = pg.transform.rotate(self.original_img, 270 - math.degrees(self.angle))
+        self.rect.size = self.image.get_size()
+        self.rect.center = self.pos.x, self.pos.y

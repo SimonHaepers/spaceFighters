@@ -1,14 +1,13 @@
 import pygame as pg
-from math import sqrt, atan2, degrees
-from ships import Player, Enemy, Ship
-from settings import window, windowHeight, windowWidth, mapSize, fps, particles, explosions
+from math import sqrt, atan2
+from ships import Player, Enemy, Ship, Ghost
+from settings import windowHeight, windowWidth, mapSize, fps, explosions
 from background import Layer, decode_layer
 import socket
 from os import walk
 from random import choice, randint
 import pickle
 from bullet import Bullet
-from vector2d import Vector2d
 from quadtree import Quadtree
 
 pg.init()
@@ -67,7 +66,7 @@ class Camera:
     def draw(self, obj, w):
         if isinstance(obj, list) or isinstance(obj, pg.sprite.Group):
             for sprite in obj:
-                window.blit(sprite.image, (sprite.rect.x - self.rect.x, sprite.rect.y - self.rect.y))
+                w.blit(sprite.image, (sprite.rect.x - self.rect.x, sprite.rect.y - self.rect.y))
         else:
             w.blit(obj.image, (obj.rect.x - self.rect.x, obj.rect.y - self.rect.y))
 
@@ -127,6 +126,8 @@ class Game:
         self.ships.add(self.player)
         self.bullets = pg.sprite.Group()
         self.radar = Radar(self.player, [self.ships])
+        self.particles = []
+        self.explosions = []
 
         self.layers = []
 
@@ -164,7 +165,7 @@ class Game:
                     if shot:
                         self.add_bullet(self.player, shot)
                 if self.joystick.get_button(5):
-                    self.player.power()
+                    self.particles.append(self.player.power())
 
                 x = self.joystick.get_axis(0)
                 y = self.joystick.get_axis(1)
@@ -172,7 +173,7 @@ class Game:
             else:
                 buttons = pg.mouse.get_pressed()
                 if buttons[0] == 1:
-                    self.player.power()
+                    self.particles.append(self.player.power())
                 if buttons[2] == 1:
                     shot = self.player.shoot()
                     if shot:
@@ -194,7 +195,7 @@ class Game:
         self.bullets.add(Bullet(shooter.pos, vel, shooter.angle, self.player))
 
     def game_over(self):
-        self.running = False
+        self.ships.remove(self.player)
 
 
 class GameSingle(Game):
@@ -205,7 +206,6 @@ class GameSingle(Game):
 
     def loop(self):  # TODO divide into smaller functions
         while self.running:
-            print()
             self.window.fill((40, 50, 50))
 
             self.input()
@@ -233,9 +233,9 @@ class GameSingle(Game):
             self.camera.draw_layers(self.layers, self.window)
             self.camera.draw(self.bullets, self.window)
             self.camera.draw(self.ships, self.window)
-            self.camera.draw(particles, self.window)
+            self.camera.draw(self.particles, self.window)
 
-            particles.empty()
+            self.particles = []
 
             score_surf = font.render(str(self.player.score), True, (255, 255, 255))
             self.window.blit(score_surf, (windowWidth - score_surf.get_width(), 0))
@@ -264,20 +264,23 @@ class GameMulti(Game):
         self.ghost_players = []
         self.ships.append(self.player)
         self.bullets = []
-        self.radar = Radar(self.player, [self.ships, self.ghost_ships])
+        self.radar = Radar(self.player, [self.ships, self.ghost_ships, self.ghost_players])
 
     def send(self, data):
         encoded_data = pickle.dumps(data)
-        self.socket.send(encoded_data)
+        try:
+            self.socket.send(encoded_data)
+        except ConnectionError:
+            pass
 
     def receive(self):
         data = None
         try:
             data = pickle.loads(self.socket.recv(2048))
         except EOFError:
-            self.running = False
+            pass
         except ConnectionError:
-            self.running = False
+            pass
 
         if data:
             for event in data:
@@ -297,7 +300,7 @@ class GameMulti(Game):
         time = pg.time.get_ticks()
         if self.last_spawn + 5000 < time:
             self.last_spawn = time
-            ship = Enemy([self.player] + self.ghost_players, self.ships, key=get_key())  # TODO fix this
+            ship = Enemy([self.player] + self.ghost_players, self.ships, key=get_key())
             self.ships.append(ship)
             self.send_list.append(AddEvent(ship.img_path, ship.rect.size, ship.key, 'ship'))
 
@@ -308,20 +311,56 @@ class GameMulti(Game):
 
     def collision(self):
         handled = []
-        for collision in check_collision(self.ships + self.bullets):
+        for collision in check_collision(self.ships + self.bullets + self.ghost_ships + self.ghost_bullets):
             if collision[0] not in handled and collision[1] not in handled:
+
                 if isinstance(collision[0], Ship) and isinstance(collision[1], Ship):
-                    collision[0].die()
-                    collision[1].die()
-                    self.send_list.append(KillEvent(collision[0].key))
-                    self.send_list.append(KillEvent(collision[1].key))
+                    if not isinstance(collision[0], Ghost):
+                        self.explosions.append(collision[0].die())
+                        self.send_list.append(KillEvent(collision[0].key))
+
+                    if not isinstance(collision[1], Ghost):
+                        self.explosions.append(collision[1].die())
+                        self.send_list.append(KillEvent(collision[1].key))
+
                 elif isinstance(collision[0], Bullet):
-                    collision[0].check_hit(collision[1])
+                    part = collision[0].check_hit(collision[1])
+                    if part:
+                        self.particles.append(part)
+
                 elif isinstance(collision[1], Bullet):
-                    collision[1].check_hit(collision[0])
+                    part = collision[1].check_hit(collision[0])
+                    if part:
+                        self.particles.append(part)
 
             handled.append(collision[0])
             handled.append(collision[1])
+
+    def kill(self):
+        for ship in self.ships:
+            exp = ship.check_alive()
+            if exp:
+                if ship == self.player:
+                    self.game_over()
+                try:
+                    self.ships.remove(ship)
+                except ValueError:
+                    pass
+                self.explosions.append(exp)
+                self.send_list.append(KillEvent(ship.key))
+
+        for bullet in self.bullets:
+            if not bullet.alive:
+                self.bullets.remove(bullet)
+                self.send_list.append(KillEvent(bullet.key))
+
+        for bullet in self.ghost_bullets:
+            if not bullet.alive:
+                self.ghost_bullets.remove(bullet)
+
+        for ship in self.ghost_ships:
+            if not ship.check_alive():
+                self.ghost_ships.remove(ship)
 
 
 class GameServer(GameMulti):
@@ -336,6 +375,7 @@ class GameServer(GameMulti):
     def loop(self):
         while self.running:
             self.window.fill((40, 50, 50))
+            self.particles = []
 
             self.input()
 
@@ -343,12 +383,7 @@ class GameServer(GameMulti):
 
             self.collision()
 
-            for ship in self.ships:
-                if not ship.check_alive():
-                    if ship == self.player:
-                        self.game_over()
-                    self.ships.remove(ship)
-                    self.send_list.append(KillEvent(ship.key))
+            self.kill()
 
             for ship in self.ships:
                 ship.update()
@@ -356,6 +391,11 @@ class GameServer(GameMulti):
 
             for bullet in self.bullets:
                 bullet.update()
+
+            for exp in self.explosions:
+                part = exp.update()
+                if part:
+                    self.particles.append(part)
 
             self.receive()
             self.send(self.send_list)
@@ -365,9 +405,9 @@ class GameServer(GameMulti):
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
-            self.camera.draw(self.player, self.window)
             all_sprites = self.bullets + self.ghost_bullets + self.ships + self.ghost_ships + self.ghost_players
             self.camera.draw(all_sprites, self.window)
+            self.camera.draw(self.particles, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
@@ -402,15 +442,13 @@ class GameClient(GameMulti):
     def loop(self):
         while self.running:
             self.window.fill((40, 50, 50))
+            self.particles = []
 
             self.input()
 
             self.collision()
 
-            for ship in self.ships:
-                if not ship.check_alive():
-                    self.ships.remove(ship)
-                    self.send_list.append(KillEvent(ship.key))
+            self.kill()
 
             for ship in self.ships:
                 ship.update()
@@ -418,6 +456,11 @@ class GameClient(GameMulti):
 
             for bullet in self.bullets:
                 bullet.update()
+
+            for exp in self.explosions:
+                part = exp.update()
+                if part:
+                    self.particles.append(part)
 
             self.send(self.send_list)
             self.receive()
@@ -427,9 +470,9 @@ class GameClient(GameMulti):
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
-            self.camera.draw(self.player, self.window)
             self.camera.draw(self.ghost_ships + self.ghost_bullets + self.ghost_players, self.window)
             self.camera.draw(self.bullets + self.ships, self.window)
+            self.camera.draw(self.particles, self.window)
 
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
@@ -494,6 +537,11 @@ class ShootEvent:
         group.append(bullet)
 
 
+class ParticleEvent:
+    def __init__(self):
+        pass
+
+
 def get_key():
     key = str(randint(0, 255))
     while key in used_keys:
@@ -512,22 +560,22 @@ class KillEvent:
         keys_dict[self.key].die()
 
 
-class Ghost(pg.sprite.Sprite):
-    def __init__(self, img_path, img_size):
-        super().__init__()
-
-        self.pos = Vector2d(0, 0)
-        self.image = pg.image.load(img_path)
-        if img_size:
-            self.image = pg.transform.scale(self.image, img_size)
-        self.original_img = self.image.copy()
-        self.rect = self.image.get_rect()
-        self.angle = 0
-
-    def update(self):
-        self.image = pg.transform.rotate(self.original_img, 270 - degrees(self.angle))
-        self.rect.size = self.image.get_size()
-        self.rect.center = self.pos.x, self.pos.y
-
-    def die(self):
-        self.kill()
+# class Ghost(pg.sprite.Sprite):
+#     def __init__(self, img_path, img_size):
+#         super().__init__()
+#
+#         self.pos = Vector2d(0, 0)
+#         self.image = pg.image.load(img_path)
+#         if img_size:
+#             self.image = pg.transform.scale(self.image, img_size)
+#         self.original_img = self.image.copy()
+#         self.rect = self.image.get_rect()
+#         self.angle = 0
+#
+#     def update(self):
+#         self.image = pg.transform.rotate(self.original_img, 270 - degrees(self.angle))
+#         self.rect.size = self.image.get_size()
+#         self.rect.center = self.pos.x, self.pos.y
+#
+#     def die(self):
+#         self.kill()

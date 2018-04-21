@@ -17,9 +17,9 @@ class Bullet(pg.sprite.Sprite):
         self.image = pg.transform.rotate(pg.image.load(self.path), 270 - degrees(self.angle))
         self.rect = self.image.get_rect()
         self.rect.center = self.pos.x, self.pos.y
-        self.explosion = Particle(laser_explosion)
         self.shooter = shooter
         self.key = key
+        self.alive = True
 
     def update(self):
         self.pos.add(self.vel)
@@ -45,10 +45,9 @@ class Bullet(pg.sprite.Sprite):
 
     def check_hit(self, sprite):
         if sprite != self.shooter:
-            self.die()
-            self.shooter.hit()
+            sprite.hit()
+            return self.die()
 
     def die(self):
-        self.explosion.draw(self.pos.x, self.pos.y, 0)
-        self.explosion.add(particles)
-        self.kill()
+        self.alive = False
+        return Particle(laser_explosion, self.pos.x, self.pos.y, 0)
