@@ -1,12 +1,13 @@
 import pygame as pg
-from math import sqrt, atan2
-from ships import Player, Enemy, Ship, Ghost
-from settings import windowHeight, windowWidth, mapSize, fps, explosions
-from background import Layer, decode_layer
 import socket
+import pickle
+from math import sqrt, atan2
 from os import walk
 from random import choice, randint
-import pickle
+
+from ships import Player, Enemy, Ship, Ghost
+from settings import windowHeight, windowWidth, mapSize, fps
+from background import Layer, decode_layer
 from bullet import Bullet
 from quadtree import Quadtree
 
@@ -122,9 +123,9 @@ class Game:
         self.running = True
         self.player = Player()
         self.camera = Camera(self.player)
-        self.ships = pg.sprite.Group()
-        self.ships.add(self.player)
-        self.bullets = pg.sprite.Group()
+        self.ships = []
+        self.ships.append(self.player)
+        self.bullets = []
         self.radar = Radar(self.player, [self.ships])
         self.particles = []
         self.explosions = []
@@ -189,10 +190,10 @@ class Game:
         time = pg.time.get_ticks()
         if self.last_spawn + 5000 < time:
             self.last_spawn = time
-            self.ships.add(Enemy([self.player], self.ships))
+            self.ships.append(Enemy([self.player], self.ships))
 
     def add_bullet(self, shooter, vel):
-        self.bullets.add(Bullet(shooter.pos, vel, shooter.angle, self.player))
+        self.bullets.append(Bullet(shooter.pos, vel, shooter.angle, self.player))
 
     def game_over(self):
         self.ships.remove(self.player)
@@ -212,22 +213,20 @@ class GameSingle(Game):
 
             self.spawn_enemy()
 
+            self.collision()
+
+            self.kill()
+
             for ship in self.ships:
                 ship.update()
 
-            self.bullets.update()
-            for exp in explosions:
-                exp.update()
-
-            for enemy in self.ships:  # TODO kill sprites here
-                enemy.check_hit(self.ships)
-
             for bullet in self.bullets:
-                hit = bullet.check_hit(self.ships)
-                if hit:
-                    bullet.kill()
-                    if isinstance(hit, Enemy):
-                        self.player.score += 50
+                bullet.update()
+
+            for exp in self.explosions:
+                part = exp.update()
+                if part:
+                    self.particles.append(part)
 
             self.camera.move()
             self.camera.draw_layers(self.layers, self.window)
@@ -245,6 +244,50 @@ class GameSingle(Game):
 
             pg.display.update()
             clock.tick(fps)
+
+        return self.player.score
+
+    def collision(self):
+        handled = []
+        for collision in check_collision(self.ships + self.bullets):
+            if collision[0] not in handled and collision[1] not in handled:
+
+                if isinstance(collision[0], Ship) and isinstance(collision[1], Ship):
+                    self.explosions.append(collision[0].die())
+                    self.explosions.append(collision[1].die())
+
+                elif isinstance(collision[0], Bullet):
+                    part = collision[0].check_hit(collision[1])
+                    if part:
+                        if collision[0].shooter == self.player:
+                            self.player.score += 50
+                        self.particles.append(part)
+
+                elif isinstance(collision[1], Bullet):
+                    part = collision[1].check_hit(collision[0])
+                    if part:
+                        if collision[1].shooter == self.player:
+                            self.player.score += 50
+                        self.particles.append(part)
+
+            handled.append(collision[0])
+            handled.append(collision[1])
+
+    def kill(self):
+        for ship in self.ships:
+            exp = ship.check_alive()
+            if exp:
+                if ship == self.player:
+                    self.game_over()
+                try:
+                    self.ships.remove(ship)
+                except ValueError:
+                    pass
+                self.explosions.append(exp)
+
+        for bullet in self.bullets:
+            if not bullet.alive:
+                self.bullets.remove(bullet)
 
 
 class GameMulti(Game):
@@ -285,7 +328,6 @@ class GameMulti(Game):
         if data:
             for event in data:
                 if isinstance(event, AddEvent):
-                    print(event)
                     if event.obj == 'ship':
                         event.do(self.ghost_ships)
                     elif event.obj == 'player':
@@ -327,11 +369,15 @@ class GameMulti(Game):
                 elif isinstance(collision[0], Bullet):
                     part = collision[0].check_hit(collision[1])
                     if part:
+                        if collision[0].shooter == self.player:
+                            self.player.score += 50
                         self.particles.append(part)
 
                 elif isinstance(collision[1], Bullet):
                     part = collision[1].check_hit(collision[0])
                     if part:
+                        if collision[1].shooter == self.player:
+                            self.player.score += 50
                         self.particles.append(part)
 
             handled.append(collision[0])
@@ -362,6 +408,10 @@ class GameMulti(Game):
         for ship in self.ghost_ships:
             if ship.check_alive():
                 self.ghost_ships.remove(ship)
+
+    def game_over(self):
+        self.ships.remove(self.player)
+        self.send_list.append(KillEvent(self.player.key))
 
 
 class GameServer(GameMulti):
@@ -413,11 +463,15 @@ class GameServer(GameMulti):
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
 
+            score_surf = font.render(str(self.player.score), True, (255, 255, 255))
+            self.window.blit(score_surf, (windowWidth - score_surf.get_width(), 0))
+
             pg.display.update()
             self.send_list = []
             clock.tick(fps)
 
         self.socket.close()
+        return self.player.score
 
     def send_map(self):
         encoded_list = []
@@ -478,11 +532,15 @@ class GameClient(GameMulti):
             self.radar.update()
             self.window.blit(self.radar.image, (20, 20))
 
+            score_surf = font.render(str(self.player.score), True, (255, 255, 255))
+            self.window.blit(score_surf, (windowWidth - score_surf.get_width(), 0))
+
             pg.display.update()
             self.send_list = []
             clock.tick(fps)
 
         self.socket.close()
+        return self.player.score
 
     def recv_map(self):
         length = int(self.socket.recv(1024).decode())

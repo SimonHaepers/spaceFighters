@@ -48,4 +48,16 @@ class Window:
 
     def collision(self, x, y):
         for widget in self.widgets:
-            widget.collision(x, y)
+            if isinstance(widget, Button):
+                widget.collision(x, y)
+
+
+class Text:
+    def __init__(self, txt, x, y):
+        self.image = font.render(txt, True, (255, 255, 255))
+        self.rect = self.image.get_rect()
+        self.rect.center = x, y
+
+    def draw(self, w):
+        w.blit(self.image, (self.rect.x, self.rect.y))
+

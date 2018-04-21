@@ -1,6 +1,6 @@
 import pygame as pg
 from settings import windowWidth, windowHeight
-from GUI import Window, Button
+from GUI import Window, Button, Text
 from game import GameSingle, GameServer, GameClient
 import socket
 
@@ -10,6 +10,7 @@ window = pg.display.set_mode((windowWidth, windowHeight))
 running = True
 window_log = []
 
+font = pg.font.Font('png/kenvector_future.ttf', 50)
 button_img = pg.image.load('png/buttonRed.png')
 
 
@@ -19,7 +20,9 @@ def stop():
 
 
 def play_single():
-    GameSingle(window).loop()
+    score = GameSingle(window).loop()
+    game_over_window.widgets.append(Text('score: ' + str(score), windowWidth/2, 200))
+    window_log.insert(0, game_over_window)
 
 
 def play_multi():
@@ -35,11 +38,19 @@ def back():
 
 
 def join():
-    GameClient(window, client_connect()).loop()
+    score = GameClient(window, client_connect()).loop()
+    game_over_window.widgets.append(Text('score: ' + str(score), windowWidth/2, 200))
+    window_log.insert(0, game_over_window)
 
 
 def create():
-    GameServer(window, server_connect()).loop()
+    score = GameServer(window, server_connect()).loop()
+    game_over_window.widgets.append(Text('score: ' + str(score), windowWidth/2, 200))
+    window_log.insert(0, game_over_window)
+
+
+def home():
+    window_log.insert(0, starting_window)
 
 
 background = pg.Surface((windowWidth, windowHeight))
@@ -55,7 +66,10 @@ multi_window.widgets.append(Button(windowWidth / 2, 200, 200, 50, join, img=butt
 multi_window.widgets.append(Button(windowWidth / 2, 300, 200, 50, create, img=button_img, text='Create'))
 multi_window.widgets.append(Button(windowWidth / 2, 400, 200, 50, back, img=button_img, text='back'))
 
-# starting_window.widgets.append(Button(10, 10, 20, 20, pause, text='||'))
+game_over_window = Window(windowWidth, windowHeight, background)
+game_over_window.widgets.append(Text('Game Over!', windowWidth / 2, 100))
+game_over_window.widgets.append(Button(windowWidth / 2, 300, 200, 50, home, img=button_img, text='Home'))
+
 
 window_log.insert(0, starting_window)
 

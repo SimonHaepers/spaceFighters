@@ -59,19 +59,10 @@ class Ship(pg.sprite.Sprite):
 
             return vel
 
-    def check_hit(self, group):
-        for sprt in group:
-            if sprt is not self:
-                if pg.sprite.collide_rect(self, sprt):
-                    if pg.sprite.collide_mask(self, sprt):
-                        self.die()
-                        sprt.die()
-
     def hit(self):
         self.health -= 20
 
     def die(self):
-        self.kill()
         self.alive = False
         return Explosion(exps, self.pos.x, self.pos.y)
 
