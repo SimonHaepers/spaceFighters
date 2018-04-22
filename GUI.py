@@ -61,3 +61,23 @@ class Text:
     def draw(self, w):
         w.blit(self.image, (self.rect.x, self.rect.y))
 
+
+class LoadingAnimation:
+    def __init__(self, x, y):
+        self.index = 0
+        img = pg.image.load('png/loading.png')
+        self.images = []
+
+        for i in range(8):
+            cropped = pg.Surface((64, 64), pg.SRCALPHA)
+            cropped.blit(img, (-i*64, 0))
+            self.images.append(cropped)
+
+        self.rect = pg.Rect(x - 32, y - 32, 64, 64)
+
+    def draw(self, w):
+        if int(self.index) == 8:
+            self.index = 0
+        w.blit(self.images[int(self.index)], (self.rect.x, self.rect.y))
+        self.index += 0.05
+

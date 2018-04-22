@@ -1,8 +1,9 @@
 import pygame as pg
 from settings import windowWidth, windowHeight
-from GUI import Window, Button, Text
+from GUI import Window, Button, Text, LoadingAnimation
 from game import GameSingle, GameServer, GameClient
 import socket
+import threading
 
 pg.init()
 
@@ -25,7 +26,7 @@ def play_single():
     window_log.insert(0, game_over_window)
 
 
-def play_multi():
+def multiplayer():
     window_log.insert(0, multi_window)
 
 
@@ -38,15 +39,30 @@ def back():
 
 
 def join():
-    score = GameClient(window, client_connect()).loop()
-    game_over_window.widgets.append(Text('score: ' + str(score), windowWidth/2, 200))
+    t = threading.Thread(target=loading)
+    t.start()
+    sckt = client_connect()
+    t.do_run = False
+    score = GameClient(window, sckt).loop()
+    game_over_window.widgets.append(Text('score: ' + str(score), windowWidth / 2, 200))
     window_log.insert(0, game_over_window)
 
 
 def create():
-    score = GameServer(window, server_connect()).loop()
-    game_over_window.widgets.append(Text('score: ' + str(score), windowWidth/2, 200))
+    t = threading.Thread(target=loading)
+    t.start()
+    sckt = server_connect()
+    t.do_run = False
+    score = GameServer(window, sckt).loop()
+    game_over_window.widgets.append(Text('score: ' + str(score), windowWidth / 2, 200))
     window_log.insert(0, game_over_window)
+
+
+def loading():
+    t = threading.currentThread()
+    while getattr(t, "do_run", True):
+        loading_window.draw(window)
+        pg.display.update()
 
 
 def home():
@@ -58,7 +74,7 @@ background.fill((40, 40, 50))
 
 starting_window = Window(windowWidth, windowHeight, background)
 starting_window.widgets.append(Button(windowWidth / 2, 200, 200, 50, play_single, img=button_img, text='Single'))
-starting_window.widgets.append(Button(windowWidth / 2, 300, 200, 50, play_multi, img=button_img, text='Multi'))
+starting_window.widgets.append(Button(windowWidth / 2, 300, 200, 50, multiplayer, img=button_img, text='Multi'))
 starting_window.widgets.append(Button(windowWidth / 2, 400, 200, 50, stop, img=button_img, text='quit'))
 
 multi_window = Window(windowWidth, windowHeight, background)
@@ -69,6 +85,10 @@ multi_window.widgets.append(Button(windowWidth / 2, 400, 200, 50, back, img=butt
 game_over_window = Window(windowWidth, windowHeight, background)
 game_over_window.widgets.append(Text('Game Over!', windowWidth / 2, 100))
 game_over_window.widgets.append(Button(windowWidth / 2, 300, 200, 50, home, img=button_img, text='Home'))
+
+loading_window = Window(windowWidth, windowHeight, background)
+loading_window.widgets.append(Text('Loading', windowWidth / 2, 200))
+loading_window.widgets.append(LoadingAnimation(windowWidth / 2, 300))
 
 
 window_log.insert(0, starting_window)
